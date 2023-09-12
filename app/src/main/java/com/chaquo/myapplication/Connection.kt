@@ -456,7 +456,7 @@ class Connection : AppCompatActivity() {
             if (update.status == PayloadTransferUpdate.Status.SUCCESS) {
                 val payloadId = update.payloadId
                 val payload = incomingFilePayloads.remove(payloadId)
-                if (payload!!.type == Payload.Type.FILE) {
+                if (payload != null && payload!!.type == Payload.Type.FILE) {
                     completedFilePayloads.put(payloadId, payload)
                     processFilePayload(payloadId)
                 }
