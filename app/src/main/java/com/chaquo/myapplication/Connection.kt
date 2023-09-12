@@ -107,8 +107,9 @@ class Connection : AppCompatActivity() {
             }
             Log.d("haseid", "no :(")
                          */
-            deleteJsonFiles()
-            deleteCSVFiles()
+            //deleteJsonFiles()
+            //deleteCSVFiles()
+            sendPhotos2()
         }
 
         viewBinding.updateDataButton.setOnClickListener{
@@ -434,6 +435,15 @@ class Connection : AppCompatActivity() {
                 eid = endpointId
 //                Nearby.getConnectionsClient(context).disconnectFromEndpoint(endpointId)
             }
+            else if (payload.type == Payload.Type.FILE)
+            {
+                Log.d(TAG, "receiving file?")
+                // Add this to our tracking map, so that we can retrieve the payload later.
+                incomingFilePayloads.put(payload.id, payload);
+
+                val fileUri = payload.asFile()!!.asUri()
+                Log.d("saveimage", fileUri.toString())
+            }
         }
 
         override fun onPayloadTransferUpdate(
@@ -442,6 +452,16 @@ class Connection : AppCompatActivity() {
         ) {
             // Bytes payloads are sent as a single chunk, so you'll receive a SUCCESS update immediately
             // after the call to onPayloadReceived().
+
+            if (update.status == PayloadTransferUpdate.Status.SUCCESS) {
+                val payloadId = update.payloadId
+                val payload = incomingFilePayloads.remove(payloadId)
+                if (payload!!.type == Payload.Type.FILE) {
+                    completedFilePayloads.put(payloadId, payload)
+                    processFilePayload(payloadId)
+                }
+            }
+
         }
     }
 
@@ -516,10 +536,9 @@ class Connection : AppCompatActivity() {
         }
         else if (message.last() == '2')
         {
-            val payloadId: Long = addPayloadFilename(message.dropLast(1))
-            processFilePayload(payloadId)
-            Log.d(TAG, message)
-
+            //val payloadId: Long = addPayloadFilename(message.dropLast(1))
+            //processFilePayload(payloadId)
+            //Log.d(TAG, message)
         }
     }
 
@@ -555,9 +574,9 @@ class Connection : AppCompatActivity() {
             // uri using our ContentResolver.
             val uri: Uri? = filePayload.asFile()!!.asUri()
 
-            lateinit var imageView: ImageView
-            imageView = findViewById(R.id.imageView)
-            imageView.setImageURI(uri)
+            //lateinit var imageView: ImageView
+            //imageView = findViewById(R.id.imageView)
+            //imageView.setImageURI(uri)
 
             saveToPhotos(uri)
         }
@@ -844,7 +863,7 @@ class Connection : AppCompatActivity() {
         // sends a photo to the first phone in the list
         if (links.isNotEmpty() && links[0].isNotEmpty()) {
             val endpoint1: String = links[0][0]
-            val usernumber1: String = links[0][1]
+            //val usernumber1: String = links[0][1]
 
             sendPhoto(endpoint1)
         } else {

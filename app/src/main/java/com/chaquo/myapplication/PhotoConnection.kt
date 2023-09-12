@@ -450,7 +450,7 @@ class PhotoConnection : AppCompatActivity() {
         }
 
 
-override fun onPayloadTransferUpdate(endpointId: String, update: PayloadTransferUpdate) {
+override fun onPayloadTransferUpdate (endpointId: String, update: PayloadTransferUpdate) {
     if (update.status == PayloadTransferUpdate.Status.SUCCESS) {
         val payloadId = update.payloadId
         val payload = incomingFilePayloads.remove(payloadId)
