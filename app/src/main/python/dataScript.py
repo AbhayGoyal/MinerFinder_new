@@ -43,7 +43,7 @@ def process_csv(input_file, output_file):
                     if(a == 1 or b == 1):
                         smaller_value = max(a, b)
 
-                    minutes = (i + 1)*30
+                    minutes = (i + 1)*15
                     if(minutes >= 60):
                         smaller_value = smaller_value + int((minutes/60))
                         minutes = minutes - 60
@@ -54,15 +54,25 @@ def process_csv(input_file, output_file):
 
                     new_value = f"{smaller_value}:{str(minutes)}"
                     time1_values.append(new_value)
-
             selected_rows["time1"] = time1_values
             modified_data.append(selected_rows)
+        else:
+            print("else, leave the data identical")
+            for index, row in group.iterrows():
+                # Append the row to the list
+                modified_data.append(row)
+
+
 
     
     # Combine the modified data from all groups into a single DataFrame
     modified_df = pd.concat(modified_data)
-    modified_df.rename(columns={"time1": "time"}, inplace=True)
+    modified_df.rename(columns={"time1": "time[hh:mm]"}, inplace=True)
+    modified_df.rename(columns={"speed": "speed[m/s]"}, inplace=True)
+    modified_df.rename(columns={"angle": "angle"}, inplace=True)
     modified_df.rename(columns={"edge": "location"}, inplace=True)
+    modified_df.rename(columns={"id": "ID"}, inplace=True)
+
 
 
     # Save the modified data to a new CSV file
@@ -76,11 +86,23 @@ def main(input_name):
 
     dir1 = str(Python.getPlatform().getApplication().getFilesDir())
 
-    folder_name = "Data"
+    folder_name = "Raw Data"
 
-    # path to the "Data" directory and the directory we store initial data in
-    initial_path = os.path.join(os.path.dirname(__file__), input_name)
-    data_path = os.path.join(dir1, folder_name)
+    # path to the abovementioned directory, where we store initial data in
+    # initial_path = os.path.join(os.path.dirname(__file__), input_name)
+    dir1 = str(Python.getPlatform().getApplication().getFilesDir())
+
+    initial_path = os.path.join(dir1, folder_name)
+    initial_path_2 = os.path.join(initial_path, input_name)
+
+    # Check if the folder "Raw Data" exists, and if not, create it
+    if not os.path.exists(initial_path):
+        os.mkdir(initial_path)
+
+
+
+    destination_name = "Data"
+    data_path = os.path.join(dir1, destination_name)
 
 
     # Check if "Data" exists, and if not, create it
@@ -90,7 +112,7 @@ def main(input_name):
     # Create the full path to the file
     filepath = os.path.join(data_path, input_name)
 
-    filter_csv(initial_path, filepath, selected_columns)
-    print("Filtered data saved to 'Data/filtered_data.csv'")
+    filter_csv(initial_path_2, filepath, selected_columns)
+    #print("Filtered data saved to 'Data/filtered_data.csv'")
 
     process_csv(filepath, filepath)

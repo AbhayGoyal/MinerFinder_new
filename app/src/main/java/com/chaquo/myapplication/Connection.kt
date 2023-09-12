@@ -3,13 +3,19 @@ package com.chaquo.myapplication
 //import com.google.android.gms.common.util.IOUtils.copyStream
 
 import android.Manifest
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Log
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.collection.SimpleArrayMap
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.chaquo.myapplication.Connection.SerializationHelper.serialize
@@ -24,6 +30,14 @@ import org.json.JSONObject
 import java.io.*
 import java.nio.charset.StandardCharsets
 import java.sql.Timestamp
+import java.io.File
+import java.util.regex.Pattern
+import com.chaquo.myapplication.db.AppDatabase
+import com.chaquo.python.PyException
+import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 
 // RENAME TO CONNECTION IF USING AGAIN
@@ -83,6 +97,8 @@ class Connection : AppCompatActivity() {
         }
 
         viewBinding.sendPhotoButton.setOnClickListener {
+
+            /*
             if (global.found_eid.isNotEmpty()) {
                 val firstEid = global.found_eid[0]
                 // sendPhoto
@@ -90,6 +106,13 @@ class Connection : AppCompatActivity() {
                 sendPhoto(firstEid)
             }
             Log.d("haseid", "no :(")
+                         */
+            deleteJsonFiles()
+            deleteCSVFiles()
+        }
+
+        viewBinding.updateDataButton.setOnClickListener{
+            updateFiles()
         }
     }
 
@@ -130,13 +153,13 @@ class Connection : AppCompatActivity() {
             }
 
             // Construct a simple message mapping the ID of the file payload to the desired filename.
-            val filenameMessage = filePayload.id.toString() + ":" + uri.lastPathSegment
+            val filenameMessage = filePayload.id.toString() + ":" + uri.lastPathSegment + "2"
 
             Log.d("FILENAME", filenameMessage)
 
             // Send the filename message as a bytes payload.
-            val filenameBytesPayload =
-                Payload.fromBytes(filenameMessage.toByteArray(StandardCharsets.UTF_8))
+            val filenameBytesPayload = Payload.fromBytes(serialize(filenameMessage))
+                //Payload.fromBytes(filenameMessage.toByteArray(StandardCharsets.UTF_8))
             Nearby.getConnectionsClient(context).sendPayload(endpointId!!, filenameBytesPayload)
 
             // Finally, send the file payload.
@@ -186,10 +209,10 @@ class Connection : AppCompatActivity() {
             mode = "ON"
         }
         else if (isAdvertising) {
-            mode = "ADVERTISING"
+            //mode = "ADVERTISING"
         }
         else if (isDiscovering) {
-            mode = "DISCOVERING"
+            //mode = "DISCOVERING"
         }
         val connectionMode: TextView = findViewById<TextView>(R.id.connection_mode)
         connectionMode.text = "Connection Mode: $mode"
@@ -203,19 +226,20 @@ class Connection : AppCompatActivity() {
 
     private fun connectionDisplay(m: String) {
         val connectionReport: TextView = findViewById<TextView>(R.id.connection_report)
-        connectionReport.text = "Connection Report: $m"
+        connectionReport.text = "Connection Status: $m"
     }
 
     private fun messageDisplay(m: String) {
         val dataDisplay: TextView = findViewById<TextView>(R.id.data_received)
-        dataDisplay.text = "Message: $m"
+        dataDisplay.text = "Received: $m"
     }
 
     private fun linksDisplay() {
         runOnUiThread {
             val linksDisplay: TextView = findViewById<TextView>(R.id.links)
             val linksNumbers = links.map { it[1] }
-            linksDisplay.text = "Links/lost: $linksNumbers / $lost"
+            //linksDisplay.text = "Links/lost: $linksNumbers / $lost"
+            linksDisplay.text = "Connected to: $linksNumbers"
         }
     }
 
@@ -384,6 +408,10 @@ class Connection : AppCompatActivity() {
             }
         }
 
+    private var incomingFilePayloads = SimpleArrayMap<Long, Payload>()
+    private var completedFilePayloads = SimpleArrayMap<Long, Payload>()
+    private var filePayloadFilenames = SimpleArrayMap<Long, String>()
+
     private val payloadCallback: PayloadCallback = object : PayloadCallback() {
         override fun onPayloadReceived(endpointId: String, payload: Payload) {
             // This always gets the full data of the payload. Is null if it's not a BYTES payload.
@@ -441,7 +469,7 @@ class Connection : AppCompatActivity() {
 
     // HANDLE FILE TRANSFERS
 
-    // add 0 to end of file if its timestamps; 1 if its miner data
+    // add 0 to end of file if its timestamps; 1 if its miner data ; 2 for a file name
 
     fun evalMessage(message: String, endpointId: String) {
         Log.d("evalmes", message)
@@ -486,7 +514,107 @@ class Connection : AppCompatActivity() {
         else if (message.last() == '1') {
             readMiner(message.dropLast(1))
         }
+        else if (message.last() == '2')
+        {
+            val payloadId: Long = addPayloadFilename(message.dropLast(1))
+            processFilePayload(payloadId)
+            Log.d(TAG, message)
+
+        }
     }
+
+    // remove later if not needed
+    private fun addPayloadFilename(payloadFilenameMessage: String): Long {
+        val parts = payloadFilenameMessage.split(":").toTypedArray()
+        val payloadId = parts[0].toLong()
+        val filename = parts[1]
+        Log.d("NAME", filename)
+
+        filePayloadFilenames.put(payloadId, filename)
+        return payloadId
+    }
+
+    private fun processFilePayload(payloadId: Long) {
+        Log.d("PATH", "IN PROCFILE")
+        // BYTES and FILE could be received in any order, so we call when either the BYTES or the FILE
+        // payload is completely received. The file payload is considered complete only when both have
+        // been received.
+        val filePayload = completedFilePayloads[payloadId]
+        val filename: String? = filePayloadFilenames.get(payloadId)
+        if(filename != null)
+            Log.d("PFP", filename)
+        if (filePayload != null && filename != null) {
+            completedFilePayloads.remove(payloadId)
+            filePayloadFilenames.remove(payloadId)
+
+            Log.d("DOWN", "ABOVE REMOVE DOWN")
+
+            // Get the received file (which will be in the Downloads folder)
+            // Because of https://developer.android.com/preview/privacy/scoped-storage, we are not
+            // allowed to access filepaths from another process directly. Instead, we must open the
+            // uri using our ContentResolver.
+            val uri: Uri? = filePayload.asFile()!!.asUri()
+
+            lateinit var imageView: ImageView
+            imageView = findViewById(R.id.imageView)
+            imageView.setImageURI(uri)
+
+            saveToPhotos(uri)
+        }
+    }
+
+    private fun saveToPhotos(uri: Uri?) {
+        val imageTitle = "My Image Title"
+        val imageDescription = "My Image Description"
+
+        val name = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US)
+            .format(System.currentTimeMillis())
+
+
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, name)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            put(MediaStore.Images.Media.TITLE, imageTitle)
+            put(MediaStore.Images.Media.DESCRIPTION, imageDescription)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                Log.d("image1", MediaStore.Images.Media.RELATIVE_PATH)
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Received-Images-MinerFinder")
+            }
+        }
+
+        Log.d("image2", MediaStore.Images.Media.RELATIVE_PATH)
+
+
+        val contentResolver = context.contentResolver
+        val imageUri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+
+        if (imageUri != null) {
+            val outputStream = contentResolver.openOutputStream(imageUri)
+            val inputStream = uri?.let { context.contentResolver.openInputStream(it) }
+            if (inputStream != null && outputStream != null) {
+                try {
+                    inputStream.copyTo(outputStream)
+                } catch (e: Exception) {
+                    Log.e("SaveToPhotos", "Error copying image: ${e.message}")
+                } finally {
+                    inputStream.close()
+                    outputStream.close()
+                }
+            }
+
+        } else {
+            Log.e("SaveToPhotos", "Failed to save image to MediaStore.")
+
+
+        }
+
+    }
+
+
+    //
+
+
+
 
     fun sendTimestamps(endpointId: String) {
         val fileName = "timestamp.csv"
@@ -514,7 +642,7 @@ class Connection : AppCompatActivity() {
             val rows = file.bufferedReader().readText()
             val myCSV = rows.split(",").toMutableList()
 
-            for (i in 0 until myCSV.size) {
+            for (i in 1 until myCSV.size) {
                 // if partner doesn't have that file or mine is newer send it to them
                 if (i > partnerCSV.size-1 || Timestamp.valueOf(myCSV[i]) > Timestamp.valueOf(partnerCSV[i])) {
                     sendMiner(endpointId, i+1, Timestamp.valueOf(myCSV[i]))
@@ -617,4 +745,113 @@ class Connection : AppCompatActivity() {
         }
 
     }
+
+
+    // this is only being used for testing
+    fun deleteJsonFiles() {
+        val directory = context.getFilesDir()
+        val excludeFile = "${Helper().getLocalUserName(applicationContext)}.json"
+
+        // Check if the directory exists
+        if (directory.exists() && directory.isDirectory) {
+            val jsonFiles = directory.listFiles { _, fileName ->
+                // Define a regular expression pattern to match single-digit number JSON files
+                val pattern = Pattern.compile("^[0-9]\\.json$")
+                pattern.matcher(fileName).matches() && fileName != excludeFile
+            }
+
+            // Iterate through the JSON files and delete them
+            jsonFiles?.forEach { file ->
+                if (file.delete()) {
+                    //println("Deleted file: ${file.name}")
+                } else {
+                    //println("Failed to delete file: ${file.name}")
+                }
+            }
+        } else {
+            Log.e("File deletion error", "Directory does not exist or is not a directory")
+        }
+    }
+
+    fun deleteCSVFiles()
+    {
+        val appInternalDir = context.getFilesDir()
+        val dataSubDir = File(appInternalDir, "Data")
+        val excludeFile = "${Helper().getLocalUserName(applicationContext)}.csv"
+
+        if (dataSubDir.exists() && dataSubDir.isDirectory) {
+            val csvFiles = dataSubDir.listFiles { _, fileName ->
+                // --- same as function above, deletes all the csv files with a specification
+                val pattern = Pattern.compile("^[0-9]\\.csv$")
+                pattern.matcher(fileName).matches() && fileName != excludeFile
+            }
+
+            // Iterate through the specified files and delete them
+            csvFiles?.forEach { file ->
+                if (file.delete()) {
+                    //println("Deleted file: ${file.name}")
+                } else {
+                    //println("Failed to delete file: ${file.name}")
+                }
+            }
+        } else {
+            Log.e("File deletion error", "Directory does not exist or is not a directory")
+        }
+
+
+
+    }
+
+    fun updateFiles()
+    {
+        val py = Python.getInstance()
+        val module = py.getModule("json_to_csv")
+        val module2 = py.getModule("dataScript")
+
+
+
+        val appInternalDir = context.getFilesDir()
+        if (appInternalDir.exists() && appInternalDir.isDirectory) {
+            val jsonFiles = appInternalDir.listFiles { _, fileName ->
+                // Define a regular expression pattern to match single-digit number JSON files
+                val pattern = Pattern.compile("^[0-9]\\.json$")
+                pattern.matcher(fileName).matches()
+            }
+
+            // Iterate through the JSON files and run the python modules on them;
+            val processedFilenames = mutableListOf<String>()
+
+            jsonFiles?.forEach { jsonFile ->
+                module.callAttr("main", jsonFile.name)
+                // Add the filename to the list
+                processedFilenames.add(jsonFile.name)
+            }
+
+            val csvFilenames = processedFilenames.map { filename ->
+                val csvFilename = filename.replace(".json", ".csv")
+                module2.callAttr("main", csvFilename)
+                csvFilename // Add the modified filename to the list
+            }
+        } else {
+            Log.e("File error", "Directory does not exist or is not a directory")
+        }
+
+
+    }
+
+    fun sendPhotos2()
+    {
+        // sends a photo to the first phone in the list
+        if (links.isNotEmpty() && links[0].isNotEmpty()) {
+            val endpoint1: String = links[0][0]
+            val usernumber1: String = links[0][1]
+
+            sendPhoto(endpoint1)
+        } else {
+            // we didn't have one connection
+        }
+
+
+    }
+
 }

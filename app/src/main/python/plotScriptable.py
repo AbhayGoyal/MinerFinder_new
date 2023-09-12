@@ -1157,14 +1157,14 @@ def mainScriptable(usernameA):
     print(final_df['time'])
 
     # Split the 'probs' column and create two new columns
-    new_df['prob'] = [item[0] for item in final_df['probs']]
+    new_df['predicted probability'] = [item[0] for item in final_df['probs']]
     new_df['location'] = [item[1] for item in final_df['probs']]
 
     ## fix for ID
     username_0 = lst_miners[0]
     username_0final = "miner" + str(username_0)
     #username_1 = username.split(".")[0]
-    new_df.insert(0, "userID", username_0)
+    new_df.insert(0, "ID", username_0)
     print(new_df)
 
     ## outputs and saves the file

@@ -15,6 +15,11 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStreamReader
+import com.chaquo.myapplication.db.AppDatabase
+import com.chaquo.python.PyException
+import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
+
 
 
 class MinerDataDisplay : AppCompatActivity() {
@@ -30,7 +35,21 @@ class MinerDataDisplay : AppCompatActivity() {
 
         setContentView(R.layout.activity_data)
 
-        Log.d(TAG, "adding the filenames to the list")
+
+        // this is to add the current user's file
+        val currentUserFile1 = "${Helper().getLocalUserName(applicationContext)}.json"
+        val py = Python.getInstance()
+        val module = py.getModule("json_to_csv")
+        val module2 = py.getModule("dataScript")
+
+        module.callAttr("main", currentUserFile1)
+
+        val currentUserFile2 = "${Helper().getLocalUserName(applicationContext)}.csv"
+        module2.callAttr("main", currentUserFile2)
+
+
+
+        Log.d(TAG, "adding the files to the list")
 
         val filesDir1 = applicationContext.filesDir
         val subDirectoryName = "Data"

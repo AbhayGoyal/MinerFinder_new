@@ -20,7 +20,7 @@
         android:text="Predicted Data"
         android:textColor="#FFFFFF"
         app:layout_constraintWidth_percent="0.45"
-        app:layout_constraintHeight_percent="0.25"
+        app:layout_constraintHeight_percent="0.2"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         android:onClick="navigationView"/>
@@ -38,7 +38,7 @@
         android:gravity="center"
         android:backgroundTint="@color/black"
         app:layout_constraintWidth_percent="0.45"
-        app:layout_constraintHeight_percent="0.25"
+        app:layout_constraintHeight_percent="0.2"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         android:contentDescription="  "
@@ -57,7 +57,7 @@
         android:backgroundTint="@color/black"
         android:textColor="#FFFFFF"
         app:layout_constraintWidth_percent="0.45"
-        app:layout_constraintHeight_percent="0.25"
+        app:layout_constraintHeight_percent="0.2"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/Button1"
         android:contentDescription="  "
@@ -71,17 +71,18 @@
         android:layout_marginEnd="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginStart="4dp"
-        android:drawableLeft="@android:drawable/ic_menu_info_details"
         android:gravity="center"
-        android:text="Account Login"
+        android:drawableLeft="@android:drawable/ic_dialog_email"
+        android:text="Miner Data"
         android:backgroundTint="@color/black"
         android:textColor="#FFFFFF"
         app:layout_constraintWidth_percent="0.45"
-        app:layout_constraintHeight_percent="0.25"
+        app:layout_constraintHeight_percent="0.2"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/Button2"
         android:contentDescription="  "
-        android:onClick="accountView"/>
+        android:onClick="dataView"/>
+
 
     <Button
         android:id="@+id/Button5"
@@ -90,17 +91,17 @@
         android:layout_marginEnd="4dp"
         android:layout_marginTop="8dp"
         android:layout_marginStart="8dp"
-        android:drawableLeft="@android:drawable/ic_dialog_email"
-        android:text="Miner Data"
+        android:drawableLeft="@android:drawable/ic_dialog_map"
+        android:text="Contact Graph"
         android:backgroundTint="@color/black"
         android:gravity="center"
         android:textColor="#FFFFFF"
         app:layout_constraintWidth_percent="0.45"
-        app:layout_constraintHeight_percent="0.25"
+        app:layout_constraintHeight_percent="0.2"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/Button3"
         android:contentDescription="  "
-        android:onClick="dataView"/>
+        android:onClick="contactView"/>
 
     <Button
         android:id="@+id/Button6"
@@ -109,17 +110,55 @@
         android:layout_marginEnd="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginStart="4dp"
+        android:gravity="center"
+        android:drawableLeft="@android:drawable/ic_dialog_email"
+        android:text="Gallery"
+        android:backgroundTint="@color/black"
+        android:textColor="#FFFFFF"
+        app:layout_constraintWidth_percent="0.45"
+        app:layout_constraintHeight_percent="0.2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/Button4"
+        android:contentDescription="  "
+        android:onClick="galleryView"/>
+
+    <Button
+        android:id="@+id/Button7"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginEnd="4dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="8dp"
         android:drawableLeft="@android:drawable/ic_dialog_map"
-        android:text="Contact Graph"
+        android:text="Share Data"
         android:backgroundTint="@color/black"
         android:gravity="center"
         android:textColor="#FFFFFF"
         app:layout_constraintWidth_percent="0.45"
-        app:layout_constraintHeight_percent="0.25"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/Button4"
+        app:layout_constraintHeight_percent="0.2"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/Button5"
         android:contentDescription="  "
-        android:onClick="contactView"/>
+        android:onClick="connection2View"/>
+
+
+
+    <Button
+        android:id="@+id/ButtonLogout"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="4dp"
+        android:gravity="center"
+        android:background="@android:drawable/ic_lock_power_off"
+        android:backgroundTint="#FF4444"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:contentDescription="  "
+        app:layout_constraintHeight_percent="0.125"
+        app:layout_constraintWidth_percent="0.25"/>
+
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

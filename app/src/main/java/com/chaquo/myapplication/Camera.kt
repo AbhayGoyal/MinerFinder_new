@@ -5,6 +5,7 @@ import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.provider.MediaStore
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.ImageCapture
@@ -31,6 +32,7 @@ import androidx.camera.video.QualitySelector
 import androidx.camera.video.VideoRecordEvent
 import androidx.core.content.PermissionChecker
 import com.chaquo.myapplication.databinding.ActivityCameraBinding
+import java.io.File
 //import com.example.minerfinder.databinding.ActivityCameraBinding
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
@@ -80,9 +82,32 @@ class Camera : AppCompatActivity() {
         val contentValues = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, name)
             put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+            //put(MediaStore.MediaColumns.ARTIST, "minerfinder-images") // Adding the tag
+
             if(Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CameraX-Image")
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/MinerFinder-Image")
             }
+            else {
+                /*
+                val directory = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+                val subdirectoryName = "MinerFinder-Image"
+                val fullPath = File(directory, subdirectoryName)
+
+                if (!fullPath.exists()) {
+                    if (fullPath.mkdirs()) {
+                        Log.d("DirectoryCreation", "Directory created: $fullPath")
+                    } else {
+                        Log.e("DirectoryCreation", "Failed to create directory: $fullPath")
+                    }
+                }
+
+                val imagePath = File(fullPath, name)
+
+                put(MediaStore.Images.Media.DATA, imagePath.toString())
+
+                 */
+            }
+
         }
 
         // Create output options object which contains file + metadata

@@ -10,15 +10,18 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
 import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.provider.MediaStore.Audio.Media
 import android.util.Log
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.ImageCapture
 import androidx.collection.SimpleArrayMap
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -33,6 +36,8 @@ import com.google.android.gms.tasks.OnFailureListener
 import com.google.android.gms.tasks.OnSuccessListener
 import java.io.*
 import java.nio.charset.StandardCharsets
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 
 class PhotoConnection : AppCompatActivity() {
@@ -80,6 +85,15 @@ class PhotoConnection : AppCompatActivity() {
             // Permission has not been granted yet, request it at runtime
             ActivityCompat.requestPermissions(this, arrayOf(permission), requestCode)
         }
+
+        if (isAdvertising) {
+            stopAdvertising()
+        }
+        else
+        {
+            stopDiscovery()
+        }
+
 
     }
 
@@ -135,7 +149,7 @@ class PhotoConnection : AppCompatActivity() {
                 getLocalUserName(), SERVICE_ID, connectionLifecycleCallback, advertisingOptions
             )
             .addOnSuccessListener { unused: Void? ->
-                connectionReport.text = "Advertising..." + getLocalUserName()
+                connectionReport.text = "Advertising as " + getLocalUserName()
                 this.isAdvertising = true
             }
             .addOnFailureListener { e: Exception? -> }
@@ -148,7 +162,7 @@ class PhotoConnection : AppCompatActivity() {
         Nearby.getConnectionsClient(context)
             .startDiscovery(SERVICE_ID, endpointDiscoveryCallback, discoveryOptions)
             .addOnSuccessListener { unused: Void? ->
-                connectionReport.text = "Discovering..."
+                connectionReport.text = "Discovering"
             }
             .addOnFailureListener { e: java.lang.Exception? -> }
     }
@@ -279,7 +293,8 @@ class PhotoConnection : AppCompatActivity() {
                     // allowed to access filepaths from another process directly. Instead, we must open the
                     // uri using our ContentResolver.
                     val uri = filePayload.asFile()!!.asUri()
-                    saveToPhotos(uri)
+                    createImageDirectory()
+                    saveToPhotos2(uri)
 
                 } else {
                     val payloadFile = filePayload.asFile()!!.asJavaFile()
@@ -290,9 +305,96 @@ class PhotoConnection : AppCompatActivity() {
             }
         }
 
+        private fun createImageDirectory() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+                val minerFinderDir = File(picturesDir, "Received-Images-MinerFinder")
+
+                if (!minerFinderDir.exists()) {
+                    if (minerFinderDir.mkdirs()) {
+                        Log.d("CreateDirectory", "Directory created: ${minerFinderDir.absolutePath}")
+                    } else {
+                        Log.e("CreateDirectory", "Failed to create directory: ${minerFinderDir.absolutePath}")
+                    }
+                }
+            }
+        }
+
+
         private fun saveToPhotos(uri: Uri?) {
+            val imageTitle = "My Image Title"
+            val imageDescription = "My Image Description"
+
+            val name = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US)
+                .format(System.currentTimeMillis())
+
+
+            val values = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, name)
+                put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                put(MediaStore.Images.Media.TITLE, imageTitle)
+                put(MediaStore.Images.Media.DESCRIPTION, imageDescription)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    Log.d("image1", MediaStore.Images.Media.RELATIVE_PATH)
+                    put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Received-Images-MinerFinder")
+                }
+            }
+
+            Log.d("image2", MediaStore.Images.Media.RELATIVE_PATH)
+
+
+            val contentResolver = context.contentResolver
+            val imageUri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+
+            if (imageUri != null) {
+                val outputStream = contentResolver.openOutputStream(imageUri)
+                val inputStream = uri?.let { context.contentResolver.openInputStream(it) }
+                if (inputStream != null && outputStream != null) {
+                    try {
+                        inputStream.copyTo(outputStream)
+                    } catch (e: Exception) {
+                        Log.e("SaveToPhotos", "Error copying image: ${e.message}")
+                    } finally {
+                        inputStream.close()
+                        outputStream.close()
+                    }
+                }
+
+                // Use the savedUri to open the image in the gallery app
+
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(imageUri, "image/*")
+                    getFilePathFromUri(imageUri)?.let { Log.e("SaveToPhotos", it) }
+                }
+                context.startActivity(intent)
+            } else {
+                Log.e("SaveToPhotos", "Failed to save image to MediaStore.")
+
+
+            }
+
+        }
+
+        fun getFilePathFromUri(uri: Uri): String? {
+            val cursor = context.contentResolver.query(uri, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val columnIndex = it.getColumnIndex(MediaStore.Images.Media.DATA)
+                    if (columnIndex != -1) {
+                        return it.getString(columnIndex)
+                    }
+                }
+            }
+            return null
+        }
+
+
+
+
+        private fun saveToPhotos2(uri: Uri?) {
             val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
             val destFile = File(picturesDir, "testfile.jpg")
+
             val inputStream = uri?.let { context.contentResolver.openInputStream(it) }
             val outputStream = FileOutputStream(destFile)
             if (inputStream != null) {
@@ -304,18 +406,39 @@ class PhotoConnection : AppCompatActivity() {
                     val savedImage = BitmapFactory.decodeFile(destFile.absolutePath)
                     val imageTitle = "My Image Title"
                     val imageDescription = "My Image Description"
-                    val savedUriString = MediaStore.Images.Media.insertImage(
+
+
+                    val name = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US)
+                        .format(System.currentTimeMillis())
+                    val values = ContentValues().apply {
+                        put(MediaStore.Images.Media.DISPLAY_NAME, name)
+                        put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                        put(MediaStore.Images.Media.TITLE, imageTitle)
+                        put(MediaStore.Images.Media.DESCRIPTION, imageDescription)
+                        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/MinerFinder-Image")
+                            Log.e("folder-input", "I came here")
+                        }
+                    }
+
+                    val contentResolver = context.contentResolver
+                    val imageUri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+
+
+                    /*val savedUriString = MediaStore.Images.Media.insertImage(
                         context.contentResolver,
                         savedImage,
                         imageTitle,
                         imageDescription
                     )
 
-                    val savedUri = Uri.parse(savedUriString)
+                    //val savedUri = Uri.parse(savedUriString)
+
+                     */
 
                     // Use the savedUri to open the image in the gallery app
                     val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(savedUri, "image/*")
+                        setDataAndType(imageUri, "image/*")
                     }
                     context.startActivity(intent)
 
@@ -505,49 +628,52 @@ private fun processFilePayload(payloadId: Long) {
     }
 }
 
-private fun saveToPhotos(uri: Uri?) {
-    val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-    val destFile = File(picturesDir, "testfile.jpg")
-    val inputStream = uri?.let { context.contentResolver.openInputStream(it) }
-    val outputStream = FileOutputStream(destFile)
-    if (inputStream != null) {
-        try {
-            inputStream.copyTo(outputStream)
-            outputStream.flush()
+    private fun saveToPhotos(uri: Uri?) {
+        val imageTitle = "My Image Title"
+        val imageDescription = "My Image Description"
 
-            // Add the image to the MediaStore
-            val savedImage = BitmapFactory.decodeFile(destFile.absolutePath)
-            val imageTitle = "My Image Title"
-            val imageDescription = "My Image Description"
-            val savedUri = MediaStore.Images.Media.insertImage(
-                context.contentResolver,
-                savedImage,
-                imageTitle,
-                imageDescription
-            )
+        val name = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US)
+            .format(System.currentTimeMillis())
 
-            // Use the savedUri to open the image in the gallery app
-//                    val intent = Intent(Intent.ACTION_VIEW, savedUri)
-//                    startActivity(intent)
 
-        } catch (e: Exception) {
-            Log.d("picstream", "Exception occurred: ${e.message}")
-        } finally {
-            // Close the input and output streams
-            try {
-                inputStream?.close()
-            } catch (e: IOException) {
-                Log.d("picstream", "Error closing input stream: ${e.message}")
-            }
-            try {
-                outputStream?.close()
-            } catch (e: IOException) {
-                Log.d("picstream", "Error closing output stream: ${e.message}")
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, name)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            put(MediaStore.Images.Media.TITLE, imageTitle)
+            put(MediaStore.Images.Media.DESCRIPTION, imageDescription)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                Log.d("image1", MediaStore.Images.Media.RELATIVE_PATH)
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Received-Images-MinerFinder")
             }
         }
+
+        Log.d("image2", MediaStore.Images.Media.RELATIVE_PATH)
+
+
+        val contentResolver = context.contentResolver
+        val imageUri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+
+        if (imageUri != null) {
+            val outputStream = contentResolver.openOutputStream(imageUri)
+            val inputStream = uri?.let { context.contentResolver.openInputStream(it) }
+            if (inputStream != null && outputStream != null) {
+                try {
+                    inputStream.copyTo(outputStream)
+                } catch (e: Exception) {
+                    Log.e("SaveToPhotos", "Error copying image: ${e.message}")
+                } finally {
+                    inputStream.close()
+                    outputStream.close()
+                }
+            }
+
+        } else {
+            Log.e("SaveToPhotos", "Failed to save image to MediaStore.")
+
+
+        }
+
     }
-    Log.d("photosteam", "end of save photo fun")
-}
 
 override fun onPayloadTransferUpdate(endpointId: String, update: PayloadTransferUpdate) {
     if (update.status == PayloadTransferUpdate.Status.SUCCESS) {

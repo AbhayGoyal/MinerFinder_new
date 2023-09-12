@@ -13,6 +13,8 @@ import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.room.Room
+import com.chaquo.myapplication.db.AppDatabase
 import com.chaquo.python.PyException
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
@@ -44,9 +46,17 @@ class MainActivity : AppCompatActivity() {
         //py.getModule("plot")
 
         // saves some files to get data
-        val module2 = py.getModule("dataScript")
-        module2.callAttr("main", "2.csv")
-        module2.callAttr("main", "3.csv")
+        //val module2 = py.getModule("dataScript")
+        //module2.callAttr("main", "2.csv")
+        //module2.callAttr("main", "3.csv")
+
+        val logoutButton = findViewById<Button>(R.id.ButtonLogout)
+
+        logoutButton.setOnClickListener {
+            // Call the function you want to execute when the button is clicked
+            logout()
+        }
+
 
         Log.d(TAG, " CHECK: finished calling main")
 
@@ -74,14 +84,22 @@ class MainActivity : AppCompatActivity() {
 
     fun connectionView(view: View?)
     {
+        val intent = Intent(this, PhotoConnection::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+        startActivity(intent)
+    }
+
+    fun connection2View(view: View?)
+    {
         val intent = Intent(this, Connection::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
         startActivity(intent)
     }
 
 
+
     fun accountView(view: View?) {
-        val intent = Intent(this, Account::class.java)
+        val intent = Intent(this, Login::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
         startActivity(intent)
     }
@@ -104,9 +122,38 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
+    fun galleryView(view: View?) {
+        val intent = Intent(this, Photos::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+        startActivity(intent)
+    }
 
+
+
+    private fun db(): AppDatabase {
+        return Room.databaseBuilder(
+            applicationContext,
+            AppDatabase::class.java, "database-name"
+        ).allowMainThreadQueries().fallbackToDestructiveMigration().build()
+    }
+
+    private fun logout() {
+        val user = db().userDao().findActive()
+        if (user != null) {
+            db().userDao().log_in_out(user.uid, false)
+
+            val intent = Intent(this, Login::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+            startActivityForResult(intent, REQUEST_LOGIN)
+        }
+    }
+
+    companion object {
+        const val REQUEST_LOGIN = 123 // Use any unique request code value
+    }
 
 
 }
+
 
 
