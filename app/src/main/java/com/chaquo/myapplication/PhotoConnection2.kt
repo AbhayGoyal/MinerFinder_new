@@ -72,6 +72,7 @@ class PhotoConnection2 : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_connection)
 
+
         checkPermission(Manifest.permission.ACCESS_FINE_LOCATION, LOCATION_PERMISSION_CODE)
 
         viewBinding = ActivityConnectionBinding.inflate(layoutInflater)

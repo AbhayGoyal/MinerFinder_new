@@ -5,9 +5,9 @@ package com.chaquo.myapplication
 import android.Manifest
 import android.content.ContentValues
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
@@ -16,16 +16,17 @@ import android.os.Build.VERSION_CODES
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
-import android.provider.MediaStore.Audio.Media
 import android.util.Log
+import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.ImageCapture
+import androidx.appcompat.widget.PopupMenu
 import androidx.collection.SimpleArrayMap
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.startActivity
 import androidx.room.Room
 import com.chaquo.myapplication.databinding.ActivityConnectionBinding
 import com.chaquo.myapplication.databinding.ActivityPhotoConnectionBinding
@@ -46,13 +47,19 @@ class PhotoConnection : AppCompatActivity() {
     private val STRATEGY: Strategy = Strategy.P2P_CLUSTER
     private val context: Context = this
 
-    private var isAdvertising = false;
+    private var isAdvertising: Boolean = false
+    private var isDiscovering: Boolean = false
     private var eid : String = ""
 
     private lateinit var viewBinding: ActivityConnectionBinding
 
     private val READ_REQUEST_CODE = 42
     private val ENDPOINT_ID_EXTRA = "com.foo.myapp.EndpointId"
+
+    private val links = mutableListOf<List<String>>() // endpointid, usernumber
+    private val connectedEndpoints = mutableListOf<String>()
+
+
 
     companion object {
         private const val LOCATION_PERMISSION_CODE = 100
@@ -63,6 +70,8 @@ class PhotoConnection : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        supportActionBar?.title = "Image Connection"
         setContentView(R.layout.activity_photo_connection)
 
         checkPermission(Manifest.permission.ACCESS_FINE_LOCATION, LOCATION_PERMISSION_CODE)
@@ -72,8 +81,9 @@ class PhotoConnection : AppCompatActivity() {
         val viewBinding = ActivityPhotoConnectionBinding.inflate(layoutInflater)
         setContentView(viewBinding.root)
 
-        viewBinding.discoverButton.setOnClickListener { startDiscovery() }
-        viewBinding.advertiseButton.setOnClickListener { startAdvertising() }
+        viewBinding.offButton2.setOnClickListener { modeOff()}
+        viewBinding.onButton2.setOnClickListener { modeOn() }
+        viewBinding.makeConnectionButton.setOnClickListener{ showEndpointDialog()}
 
 
         val permission = Manifest.permission.WRITE_EXTERNAL_STORAGE
@@ -85,15 +95,6 @@ class PhotoConnection : AppCompatActivity() {
             // Permission has not been granted yet, request it at runtime
             ActivityCompat.requestPermissions(this, arrayOf(permission), requestCode)
         }
-
-        if (isAdvertising) {
-            stopAdvertising()
-        }
-        else
-        {
-            stopDiscovery()
-        }
-
 
     }
 
@@ -142,14 +143,15 @@ class PhotoConnection : AppCompatActivity() {
 
     private fun startAdvertising() {
         val advertisingOptions: AdvertisingOptions = AdvertisingOptions.Builder().setStrategy(STRATEGY).build()
-        val connectionReport: TextView = findViewById<TextView>(R.id.connection_report)
+        //val connectionReport: TextView = findViewById<TextView>(R.id.connection_report)
 
+        val endpointName = getLocalUserName()
         Nearby.getConnectionsClient(context)
             .startAdvertising(
-                getLocalUserName(), SERVICE_ID, connectionLifecycleCallback, advertisingOptions
+                endpointName, SERVICE_ID, connectionLifecycleCallback, advertisingOptions
             )
             .addOnSuccessListener { unused: Void? ->
-                connectionReport.text = "Advertising as " + getLocalUserName()
+                //connectionReport.text = "Advertising as " + getLocalUserName()
                 this.isAdvertising = true
             }
             .addOnFailureListener { e: Exception? -> }
@@ -162,17 +164,49 @@ class PhotoConnection : AppCompatActivity() {
         Nearby.getConnectionsClient(context)
             .startDiscovery(SERVICE_ID, endpointDiscoveryCallback, discoveryOptions)
             .addOnSuccessListener { unused: Void? ->
-                connectionReport.text = "Discovering"
+                //connectionReport.text = "Discovering"
+                this.isDiscovering = true
             }
             .addOnFailureListener { e: java.lang.Exception? -> }
     }
 
     private fun stopAdvertising() {
         Nearby.getConnectionsClient(context).stopAdvertising()
+        this.isAdvertising = false
     }
 
     private fun stopDiscovery() {
         Nearby.getConnectionsClient(context).stopDiscovery()
+        this.isDiscovering = false
+    }
+
+    private fun modeOff()
+    {
+        if(isAdvertising)
+            stopAdvertising()
+        if (isDiscovering)
+            stopDiscovery()
+
+        val connectionReport: TextView = findViewById<TextView>(R.id.connection_report)
+        connectionReport.text = "Stopped searching for endpoints"
+        links.clear()
+
+        for (endpointId in connectedEndpoints) {
+            // Check if the endpoint is still connected
+            Nearby.getConnectionsClient(context).disconnectFromEndpoint(endpointId)
+            // Clear the list of connected endpoints
+            connectedEndpoints.clear()
+        }
+
+    }
+
+    private fun modeOn()
+    {
+        if(!isAdvertising)
+            startAdvertising()
+        if (!isDiscovering)
+            startDiscovery()
+
     }
 
     /**
@@ -484,16 +518,35 @@ private val endpointDiscoveryCallback: EndpointDiscoveryCallback =
 object : EndpointDiscoveryCallback() {
     override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
         // An endpoint was found. We request a connection to it.
-        Nearby.getConnectionsClient(context)
-            .requestConnection(getLocalUserName(), endpointId, connectionLifecycleCallback)
-            .addOnSuccessListener(
-                OnSuccessListener { unused: Void? -> })
-            .addOnFailureListener(
-                OnFailureListener { e: java.lang.Exception? -> })
+        //Nearby.getConnectionsClient(context)
+            //.requestConnection(getLocalUserName(), endpointId, connectionLifecycleCallback)
+            //.addOnSuccessListener(
+            //    OnSuccessListener { unused: Void? -> })
+            //.addOnFailureListener(
+            //    OnFailureListener { e: java.lang.Exception? -> })
+
+        val discoveredEndpointName = info.endpointName
+        val discoveredEndpointID = endpointId
+        links.add(listOf(discoveredEndpointID, discoveredEndpointName))
+        // display the potential endpoints
+        val linksDisplay: TextView = findViewById<TextView>(R.id.connection_report)
+        val linksNumbers = links.map { it[1] }
+        linksDisplay.text = "Potential Endpoints: $linksNumbers"
+
     }
 
     override fun onEndpointLost(endpointId: String) {
+
         // A previously discovered endpoint has gone away.
+        if (VERSION.SDK_INT >= VERSION_CODES.N) {
+            links.removeIf { it[0] == endpointId }
+        }
+
+        // Update the display of potential endpoints
+        val linksDisplay: TextView = findViewById<TextView>(R.id.connection_report)
+        val linksNumbers = links.map { it[1] }
+        linksDisplay.text = "An endpoint was lost! Potential Endpoints: $linksNumbers"
+
     }
 }
 
@@ -514,14 +567,14 @@ object : ConnectionLifecycleCallback() {
 
         when (result.status.statusCode) {
             ConnectionsStatusCodes.STATUS_OK -> {
-                connectionReport.text = "Connection Made!"
+                connectionReport.text = "Connected"
                 if (isAdvertising) {
 //                            sendPayLoad(endpointId)
-                    stopAdvertising()
-                    showImageChooser(endpointId)
+                    //stopAdvertising()
+                    //showImageChooser(endpointId)
                 }
                 else {
-                    stopDiscovery()
+                    //stopDiscovery()
                 }
             }
             ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> {}
@@ -625,6 +678,7 @@ private fun processFilePayload(payloadId: Long) {
         imageView.setImageURI(uri)
 
         saveToPhotos(uri)
+
     }
 }
 
@@ -712,4 +766,117 @@ fun deserialize(bytes: ByteArray?): Any {
     return objectInputStream.readObject()
 }
 }
+
+
+    private fun makeConnection(endpointId: String)
+    {
+        // should use a list
+        // right now, seeks the first viable connection
+        if (links.isNotEmpty() && links[0].isNotEmpty()) {
+
+            val endpointId = links[0][0]
+
+            // An endpoint was found. We request a connection to it.
+            Nearby.getConnectionsClient(context)
+                .requestConnection(getLocalUserName(), endpointId, connectionLifecycleCallback)
+                .addOnSuccessListener(
+                    OnSuccessListener { unused: Void? ->
+                        connectedEndpoints.add(endpointId)
+                        showImageChooser(endpointId)
+                    })
+                .addOnFailureListener(
+                    OnFailureListener { e: java.lang.Exception? -> })
+        }
+        else
+        {
+            Log.d(TAG,"No endpoints were found!")
+            val duration = Toast.LENGTH_SHORT
+            val toast = Toast.makeText(applicationContext, "No endpoints were found", duration)
+            toast.show()
+
+
+        }
+
+    }
+
+    fun showEndpointDialog() {
+        if(links.isNotEmpty()) {
+            val builder = AlertDialog.Builder(this)
+            builder.setTitle("Select Endpoint")
+
+            //builder.setMessage("Select an endpoint to connect to:")
+            val endpointList = links.map { it[1] }
+
+            val endpointNames = endpointList.toTypedArray()
+            var selectedItem: Int = 0
+
+            builder.setSingleChoiceItems(endpointNames, 1,
+                DialogInterface.OnClickListener { dialog, which ->
+                    selectedItem = which
+                })
+
+            builder.setPositiveButton(
+                "OK"
+            ) { dialog, which ->
+                //Handle when user clicks OK
+                val selectedEndpoint = endpointList[selectedItem]
+                // Handle the selected endpoint here
+                val toSend = links.find { it[1] == selectedEndpoint }
+                val targetEndpoint = toSend?.get(0).toString()
+                if(targetEndpoint != null)
+                {
+                    makeConnection(targetEndpoint)
+                }
+
+            }
+
+
+
+            builder.setNegativeButton("Cancel") { dialog, which ->
+                // Handle cancel action if needed
+            }
+
+            val dialog = builder.create()
+            dialog.show()
+            //val duration = Toast.LENGTH_SHORT
+            //val toast = Toast.makeText(applicationContext, endpointNames[0].toString(), 5)
+            //toast.show()
+        }
+    }
+
+    fun showEndpointPopupMenu(view: View) {
+        val popupMenu = PopupMenu(this, view)
+
+        Log.d("POPUP", "Entered here")
+
+        if(links.isNotEmpty()) {
+            val endpointList = links.map { it[1] }
+
+
+            // Add menu items for each endpoint
+            for (endpoint in endpointList) {
+            popupMenu.menu.add(endpoint)
+            }
+
+        // Set a listener for menu item clicks
+        popupMenu.setOnMenuItemClickListener { item ->
+            val selectedEndpoint = item.title.toString()
+            // Handle the selected endpoint here
+            val toSend = links.find { it[1] == selectedEndpoint }
+            val targetEndpoint = toSend?.get(0).toString()
+            if(targetEndpoint != null)
+            {
+                makeConnection(targetEndpoint)
+            }
+
+
+            true
+        }
+
+        // Show the popup menu
+        popupMenu.show()
+    }
+    }
+
+
 }

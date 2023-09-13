@@ -95,10 +95,6 @@ class MinerDataDisplay : AppCompatActivity() {
             }
         }
 
-
-
-
-
         val recyclerView: RecyclerView = findViewById(R.id.recyclerView2)
         val layoutManager: RecyclerView.LayoutManager = LinearLayoutManager(this)
         recyclerView.layoutManager = layoutManager

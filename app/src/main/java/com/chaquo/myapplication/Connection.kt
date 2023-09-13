@@ -107,9 +107,9 @@ class Connection : AppCompatActivity() {
             }
             Log.d("haseid", "no :(")
                          */
-            //deleteJsonFiles()
-            //deleteCSVFiles()
-            sendPhotos2()
+            deleteJsonFiles()
+            deleteCSVFiles()
+            //sendPhotos2()
         }
 
         viewBinding.updateDataButton.setOnClickListener{
