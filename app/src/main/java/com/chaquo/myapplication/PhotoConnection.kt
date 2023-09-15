@@ -3,11 +3,13 @@ package com.chaquo.myapplication
 //import com.google.android.gms.common.util.IOUtils.copyStream
 
 import android.Manifest
+import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
@@ -17,13 +19,11 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
-import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.PopupMenu
 import androidx.collection.SimpleArrayMap
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -81,7 +81,7 @@ class PhotoConnection : AppCompatActivity() {
         val viewBinding = ActivityPhotoConnectionBinding.inflate(layoutInflater)
         setContentView(viewBinding.root)
 
-        viewBinding.offButton2.setOnClickListener { modeOff()}
+        viewBinding.offButton2.setOnClickListener { modeOff() }
         viewBinding.onButton2.setOnClickListener { modeOn() }
         viewBinding.makeConnectionButton.setOnClickListener{ showEndpointDialog()}
 
@@ -231,6 +231,8 @@ class PhotoConnection : AppCompatActivity() {
 
             // The URI of the file selected by the user.
             val uri = resultData.data
+
+
             val filePayload: Payload
             filePayload = try {
                 // Open the ParcelFileDescriptor for this URI with read access.
@@ -240,6 +242,20 @@ class PhotoConnection : AppCompatActivity() {
                 Log.e("MyApp", "File not found", e)
                 return
             }
+
+
+
+            /*
+            val filePayload = try{
+                    createCompressedPayload(this, uri)
+                }
+            catch (e: FileNotFoundException) {
+                Log.e("MyApp", "File not found", e)
+                return
+            }
+
+             */
+
 
             // Construct a simple message mapping the ID of the file payload to the desired filename.
             val filenameMessage = filePayload.id.toString() + ":" + uri.lastPathSegment
@@ -600,12 +616,8 @@ override fun onPayloadReceived(endpointId: String, payload: Payload) {
     when (payload.type) {
         Payload.Type.BYTES -> {
             val payloadFilenameMessage = String(payload.asBytes()!!, StandardCharsets.UTF_8)
-
-//                    val payloadFilenameMessage = SerializationHelper.deserialize(payload.asBytes())
-
             val payloadId: Long = addPayloadFilename(payloadFilenameMessage)
             processFilePayload(payloadId)
-//                    var rcvdFilename = String(payload.asBytes()!!, StandardCharsets.UTF_8)
             Log.d(TAG, payload.asBytes().toString())
             val dataDisplay: TextView = findViewById<TextView>(R.id.data_received)
             dataDisplay.text = payloadFilenameMessage
@@ -619,9 +631,6 @@ override fun onPayloadReceived(endpointId: String, payload: Payload) {
             Log.d("saveimage", fileUri.toString())
 
         }
-//                Payload.Type.STREAM -> {
-//                    Log.d(TAG, "Inside file mode")
-//                }
     }
 }
 
@@ -818,9 +827,9 @@ fun deserialize(bytes: ByteArray?): Any {
             builder.setPositiveButton(
                 "OK"
             ) { dialog, which ->
-                //Handle when user clicks OK
+                //when user clicks OK
                 val selectedEndpoint = endpointList[selectedItem]
-                // Handle the selected endpoint here
+                // send to the selected endpoint here
                 val toSend = links.find { it[1] == selectedEndpoint }
                 val targetEndpoint = toSend?.get(0).toString()
                 if(targetEndpoint != null)
@@ -844,39 +853,46 @@ fun deserialize(bytes: ByteArray?): Any {
         }
     }
 
-    fun showEndpointPopupMenu(view: View) {
-        val popupMenu = PopupMenu(this, view)
 
-        Log.d("POPUP", "Entered here")
+    fun createCompressedPayload(context: Context, uri: Uri?): Payload {
+        val contentResolver: ContentResolver = context.contentResolver
 
-        if(links.isNotEmpty()) {
-            val endpointList = links.map { it[1] }
+        return try {
+            val inputStream: InputStream? = uri?.let { contentResolver.openInputStream(it) }
 
+            // Check if the InputStream is not null
+            if (inputStream != null) {
 
-            // Add menu items for each endpoint
-            for (endpoint in endpointList) {
-            popupMenu.menu.add(endpoint)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+
+                // Specify the compression quality (0-100)
+                val compressionQuality = 75
+
+                val outputStream = ByteArrayOutputStream()
+
+                // Compress the Bitmap into the ByteArrayOutputStream with the specified quality
+                bitmap.compress(Bitmap.CompressFormat.JPEG, compressionQuality, outputStream)
+
+                val compressedImageBytes = outputStream.toByteArray()
+
+                Payload.fromBytes(compressedImageBytes)
+            } else {
+                Log.e("PhotoConnection", "InputStream is null")
+                Payload.fromBytes(byteArrayOf())
             }
-
-        // Set a listener for menu item clicks
-        popupMenu.setOnMenuItemClickListener { item ->
-            val selectedEndpoint = item.title.toString()
-            // Handle the selected endpoint here
-            val toSend = links.find { it[1] == selectedEndpoint }
-            val targetEndpoint = toSend?.get(0).toString()
-            if(targetEndpoint != null)
-            {
-                makeConnection(targetEndpoint)
-            }
-
-
-            true
+        } catch (e: FileNotFoundException) {
+            Log.e("PhotoConnection", "File not found", e)
+            Payload.fromBytes(byteArrayOf())
         }
-
-        // Show the popup menu
-        popupMenu.show()
-    }
     }
 
+
+
+    private fun db(): AppDatabase {
+        return Room.databaseBuilder(
+            applicationContext,
+            AppDatabase::class.java, "database-name"
+        ).allowMainThreadQueries().fallbackToDestructiveMigration().build()
+    }
 
 }

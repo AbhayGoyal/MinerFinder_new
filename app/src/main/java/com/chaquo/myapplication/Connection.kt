@@ -313,7 +313,7 @@ class Connection : AppCompatActivity() {
         Nearby.getConnectionsClient(context).disconnectFromEndpoint(endpointId)
         val lostNumber = links.find { it[0] == endpointId }
 
-        connectionDisplay("Disconnected from $lostNumber[0]")
+        //connectionDisplay("Disconnected from $lostNumber[0]")
 
         if (lostNumber != null) {
             val alreadyExists = lost.contains(lostNumber[0])
@@ -405,7 +405,7 @@ class Connection : AppCompatActivity() {
                     sendLostMessage(lostNumber[1].toString())
                 }
                 linksDisplay()
-                offlineDisplay()
+                //offlineDisplay()
             }
         }
 

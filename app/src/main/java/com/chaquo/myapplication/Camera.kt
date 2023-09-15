@@ -1,46 +1,50 @@
 package com.chaquo.myapplication
 
+//import com.example.minerfinder.databinding.ActivityMainBinding
+//import com.example.minerfinder.databinding.ActivityCameraBinding
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.media.Image
+import android.media.MediaScannerConnection
+import android.media.MediaScannerConnection.scanFile
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
+import android.util.Size
+import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.Recorder
 import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-//import com.example.minerfinder.databinding.ActivityMainBinding
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import android.widget.Toast
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.core.Preview
-import androidx.camera.core.CameraSelector
-import android.util.Log
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.ImageProxy
-import androidx.camera.video.FallbackStrategy
-import androidx.camera.video.MediaStoreOutputOptions
-import androidx.camera.video.Quality
-import androidx.camera.video.QualitySelector
-import androidx.camera.video.VideoRecordEvent
-import androidx.core.content.PermissionChecker
+import androidx.room.Room
 import com.chaquo.myapplication.databinding.ActivityCameraBinding
+import com.chaquo.myapplication.db.AppDatabase
+import com.chaquo.myapplication.db.StoredImageData
 import java.io.File
-//import com.example.minerfinder.databinding.ActivityCameraBinding
+import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 
 typealias LumaListener = (luma: Double) -> Unit
-
 
 class Camera : AppCompatActivity() {
     private lateinit var viewBinding: ActivityCameraBinding
@@ -49,6 +53,7 @@ class Camera : AppCompatActivity() {
 
     private var videoCapture: VideoCapture<Recorder>? = null
     private var recording: Recording? = null
+
 
     private lateinit var cameraExecutor: ExecutorService
 
@@ -80,42 +85,42 @@ class Camera : AppCompatActivity() {
         val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US)
             .format(System.currentTimeMillis())
         val contentValues = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+            put(MediaStore.MediaColumns.DISPLAY_NAME, "IMG_$name.jpg")
             put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
             //put(MediaStore.MediaColumns.ARTIST, "minerfinder-images") // Adding the tag
 
             if(Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
                 put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/MinerFinder-Image")
             }
-            else {
-                /*
-                val directory = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-                val subdirectoryName = "MinerFinder-Image"
-                val fullPath = File(directory, subdirectoryName)
-
-                if (!fullPath.exists()) {
-                    if (fullPath.mkdirs()) {
-                        Log.d("DirectoryCreation", "Directory created: $fullPath")
-                    } else {
-                        Log.e("DirectoryCreation", "Failed to create directory: $fullPath")
-                    }
-                }
-
-                val imagePath = File(fullPath, name)
-
-                put(MediaStore.Images.Media.DATA, imagePath.toString())
-
-                 */
-            }
 
         }
 
+        // creates the subdirectory to store images in
+        val subdirectoryName = "CapturedImages"
+        val subdirectory = File(applicationContext.filesDir, subdirectoryName)
+        if (!subdirectory.exists()) {
+            subdirectory.mkdirs()
+        }
+
+        val fileName = "IMG_$name.jpg"
+
+        val photoFile = File(applicationContext.filesDir, "$subdirectoryName/$fileName")
+
+
+
         // Create output options object which contains file + metadata
+
         val outputOptions = ImageCapture.OutputFileOptions
             .Builder(contentResolver,
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 contentValues)
             .build()
+
+
+        /*
+        val outputOptions = ImageCapture.OutputFileOptions
+            .Builder(photoFile).build()
+        */
 
         // Set up image capture listener, which is triggered after photo has
         // been taken
@@ -127,14 +132,23 @@ class Camera : AppCompatActivity() {
                     Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
                 }
 
-                override fun
-                        onImageSaved(output: ImageCapture.OutputFileResults){
+                override fun onImageSaved(output: ImageCapture.OutputFileResults){
                     val msg = "Photo capture succeeded: ${output.savedUri}"
                     Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
                     Log.d(TAG, msg)
+
+                    // inserts the image into the database
+                    val imageData = StoredImageData(imageid = fileName, is_received = false, imgpath = output.savedUri.toString(), tags = "Captured")
+                    db().storedImageDao().insert(imageData)
+
+                    // add file to gallery
+                    //scanFile(applicationContext, arrayOf(output.savedUri.path ?: ""))
+
                 }
             }
         )
+
+
     }
 
     private fun captureVideo() {}
@@ -153,7 +167,11 @@ class Camera : AppCompatActivity() {
                     it.setSurfaceProvider(viewBinding.viewFinder.surfaceProvider)
                 }
 
+
+            // NOTE: right now this class sets a target resolution of 1080x1920
+            // this should work on most devices, otherwise it'll default to the closest higher resolution
             imageCapture = ImageCapture.Builder()
+                .setTargetResolution(Size(1080,1920))
                 .build()
 
             val imageAnalyzer = ImageAnalysis.Builder()
@@ -244,4 +262,15 @@ class Camera : AppCompatActivity() {
                 }
             }.toTypedArray()
     }
+
+
+    private fun db(): AppDatabase {
+        return Room.databaseBuilder(
+            applicationContext,
+            AppDatabase::class.java, "database-name"
+        ).allowMainThreadQueries().fallbackToDestructiveMigration().build()
+    }
+
+
+
 }
