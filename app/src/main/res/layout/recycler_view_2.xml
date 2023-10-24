@@ -15,6 +15,8 @@
 
 
 
+
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -37,11 +39,29 @@
             android:backgroundTint="@color/teal_700"
             />
 
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/run_model"
+            android:text = "Run Model"
+            android:textSize="12sp"
+            app:layout_constraintTop_toBottomOf="@id/minerListResults"/>
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/measure_battery"
+            android:text = "Test-Measure Battery"
+            android:textSize="12sp"
+            app:layout_constraintTop_toBottomOf="@id/minerListResults"
+            app:layout_constraintLeft_toRightOf="@id/run_model"/>
+
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layout_constraintTop_toBottomOf="@id/minerListResults"/>
+            app:layout_constraintTop_toBottomOf="@id/run_model"/>
 
     </LinearLayout>
 

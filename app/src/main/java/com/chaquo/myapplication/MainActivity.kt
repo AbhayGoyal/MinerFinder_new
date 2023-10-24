@@ -1,6 +1,8 @@
 package com.chaquo.myapplication
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
@@ -13,6 +15,8 @@ import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.room.Room
 import com.chaquo.myapplication.db.AppDatabase
 import com.chaquo.python.PyException
@@ -25,14 +29,23 @@ import java.io.InputStreamReader
 
 class MainActivity : AppCompatActivity() {
 
+    private val MY_PERMISSIONS_REQUEST_ACTIVITY_RECOGNITION = 90
+
     private val TAG = "MainActivity"
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // binds to the activity_main layout file (currently not really used for this demo)
         setContentView(R.layout.activity_main)
 
+        // ask for permission for StepCounter
+        checkPermissions()
+
+
         // starts the step counter
         startService(Intent(this, StepCounter::class.java))
+
+        // debugging
+        Log.d("MAIN;USERNAME", "${Helper().getLocalUserName(applicationContext)}")
 
         if (! Python.isStarted()) {
             Python.start(AndroidPlatform(this))
@@ -128,6 +141,13 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
+    fun testLocationView(view: View?) {
+        val intent = Intent(this, TestLocation::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+        startActivity(intent)
+    }
+
+
 
 
     private fun db(): AppDatabase {
@@ -151,6 +171,24 @@ class MainActivity : AppCompatActivity() {
     companion object {
         const val REQUEST_LOGIN = 123 // Use any unique request code value
     }
+
+    private fun checkPermissions() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION)
+            != PackageManager.PERMISSION_GRANTED) {
+            // Permission denied, ask user for permission
+            ActivityCompat.requestPermissions(this,
+                arrayOf(Manifest.permission.ACTIVITY_RECOGNITION),
+                MY_PERMISSIONS_REQUEST_ACTIVITY_RECOGNITION)
+        }
+    }
+
+    override fun onDestroy() {
+        // ends the background service step counter
+        stopService(Intent(this, StepCounter::class.java))
+        super.onDestroy()
+    }
+
+
 
 
 }

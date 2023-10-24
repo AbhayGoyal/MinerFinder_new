@@ -117,10 +117,10 @@ class Camera : AppCompatActivity() {
             .build()
 
 
-        /*
-        val outputOptions = ImageCapture.OutputFileOptions
-            .Builder(photoFile).build()
-        */
+
+
+        //val outputOptions = ImageCapture.OutputFileOptions
+        //    .Builder(photoFile).build()
 
         // Set up image capture listener, which is triggered after photo has
         // been taken

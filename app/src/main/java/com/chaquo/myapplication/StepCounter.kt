@@ -1,8 +1,10 @@
 package com.chaquo.myapplication
 
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -116,6 +118,8 @@ class StepCounter : Service(){
 
     override fun onDestroy() {
         super.onDestroy()
+
+        unregisterReceiver(receiver)
     }
 
     // Compute the three orientation angles based on the most recent readings from
@@ -158,6 +162,42 @@ class StepCounter : Service(){
         return listOf(false, pillar)
     }
 
+
+    // just for testing
+    companion object {
+        const val ACTION_SET_PILLAR = "com.example.stepcounter.SET_PILLAR"
+        const val EXTRA_PILLAR_VALUE = "pillar_value"
+    }
+
+    var testPillar = "A"
+
+    private fun getPillar():String
+    {
+        return testPillar
+    }
+
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            intent?.let {
+                if (it.action == ACTION_SET_PILLAR) {
+                    val newValue = it.getStringExtra(EXTRA_PILLAR_VALUE)
+                    newValue?.let { value ->
+                        testPillar = value
+                        // Do any additional processing with the updated testPillar variable here
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        // Register the BroadcastReceiver
+        val filter = IntentFilter(ACTION_SET_PILLAR)
+        registerReceiver(receiver, filter)
+    }
+
+
     private suspend fun step_handler() {
         var lastSteps: Int = step_count
         var currentSteps: Int
@@ -171,19 +211,31 @@ class StepCounter : Service(){
             val startTime = System.currentTimeMillis()
             for (i in 0 until INTERVAL) {
                 delay(1000)
-//                Log.d("read 99", step_count.toString())
+                //Log.d("STEPCOUNT", step_count.toString() )
                 currentSteps = step_count - lastSteps
+                //Log.d("STEPCOUNT-CURRENT", currentSteps.toString() )
                 lastSteps = step_count
                 distance = currentSteps * avg_step_size
                 angle = getAzimuth()
                 val coords = get_coord(distance, angle.toDouble())
                 x += coords[0]
                 y += coords[1]
+                /*
                 val res = randomPillar(pillar, 0.3f)
                 if (abs(coords[0]) > 0 && res[0] as Boolean) {
                     pillar = res[1] as String
                     break
                 }
+
+                 */
+                val res = randomPillar(pillar, 0.3f)
+                var pillar2 = getPillar()
+                if (pillar2 != pillar) {
+                    Log.d("BREAK", "from $pillar to $pillar2")
+                    pillar = pillar2
+                    break
+                }
+
             }
             val comp = get_comp(x, y)
             x = 0.0
@@ -227,10 +279,12 @@ class StepCounter : Service(){
         jsonObject.put(Timestamp(System.currentTimeMillis()).toString(), jsonString)
 
         // limit ot 40 items in json object for testing
+        /*
         while (jsonObject.length() > 40) {
             val firstKey = jsonObject.keys().next()
             jsonObject.remove(firstKey)
         }
+         */
         while (jsonObject.length() > 0) {
             val firstKey = jsonObject.keys().next()
             if ((Timestamp(System.currentTimeMillis()).time - Timestamp.valueOf(firstKey).time) / 1000 > STORAGE_TIME)

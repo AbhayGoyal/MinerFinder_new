@@ -1120,6 +1120,12 @@ def mainScriptable(usernameA):
 
 
         ind = np.where(np.max(probs))[0][0]
+
+        max_index = np.argmax(probs)
+        max_value = np.max(probs)
+
+        print("Max Prob: ", max_value, " at ", max_index)
+
         print("index is", ind)
         print("edges is", edges)
         print("conv list", conv_list)
@@ -1131,18 +1137,19 @@ def mainScriptable(usernameA):
             #print("edgedict", edge_dict)
             #print("trajfuturedict", traj_future_dict)
 
-            from_loc = conv_list[edges[ind][0]]
-            #from_loc = edge_dict[edges[ind][0]]
+            #from_loc = conv_list[edges[ind][0]]
+            from_loc = conv_list[edges[max_index][0]]
 
             print("1: print from_loc ", from_loc)
-            to_loc = conv_list[edges[ind][1]]
-            #to_loc = traj_future_dict[edges[ind][1]]
+            #to_loc = conv_list[edges[ind][1]]
+            to_loc = conv_list[edges[max_index][1]]
 
             # e = edges[ind]
 
-            final_res[k] = (probs[ind], (from_loc, to_loc))
+            final_res[k] = (probs[max_index], (from_loc, to_loc))
         except Exception as e:
             print(e)
+
 
 
     print("finally contact", final_res)

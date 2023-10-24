@@ -124,5 +124,11 @@ dependencies {
     implementation 'androidx.viewpager:viewpager:1.0.0'
 
 
+    // for the Glide library (simplifies image loading)
+    implementation 'com.github.bumptech.glide:glide:4.4.0'
+    kapt 'com.github.bumptech.glide:compiler:4.4.0'
+
+
+
 
 }

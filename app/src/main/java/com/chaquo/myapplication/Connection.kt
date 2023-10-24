@@ -217,6 +217,9 @@ class Connection : AppCompatActivity() {
         }
         val connectionMode: TextView = findViewById<TextView>(R.id.connection_mode)
         connectionMode.text = "Connection Mode: $mode"
+        val connectionReport: TextView = findViewById<TextView>(R.id.connection_mode)
+        connectionReport.text = "Searching"
+
     }
 
     private fun errorDisplay(e: String) {
@@ -247,7 +250,7 @@ class Connection : AppCompatActivity() {
     private fun offlineDisplay() {
         runOnUiThread {
             val offlineDisplay: TextView = findViewById<TextView>(R.id.offline)
-            offlineDisplay.text = "Universal offline: $offline"
+            //offlineDisplay.text = "Universal offline: $offline"
         }
     }
 
@@ -871,6 +874,15 @@ class Connection : AppCompatActivity() {
         }
 
 
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopAdvertising()
+        stopDiscovery()
+        links.clear()
+        lost.clear()
+        offline.clear()
     }
 
 }

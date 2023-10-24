@@ -58,6 +58,9 @@
             android:name=".Sensors"
             android:exported="false" />
         <activity
+            android:name=".PhotoConnection2"
+            android:exported="false" />
+        <activity
             android:name=".Connection"
             android:exported="false" />
         <activity
@@ -89,6 +92,13 @@
             </intent-filter>
 
         </activity>
+
+        <activity
+            android:name=".TestLocation"
+            android:label="Location Test"
+            android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
+        </activity>
+
 
 
 

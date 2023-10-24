@@ -141,6 +141,27 @@
         android:contentDescription="  "
         android:onClick="connection2View"/>
 
+    <Button
+        android:id="@+id/Button8"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="4dp"
+        android:gravity="center"
+        android:drawableLeft="@android:drawable/ic_dialog_email"
+        android:text="TEST"
+        android:backgroundTint="@color/black"
+        android:textColor="#FFFFFF"
+        app:layout_constraintWidth_percent="0.45"
+        app:layout_constraintHeight_percent="0.2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/Button6"
+        android:contentDescription="  "
+        android:onClick="testLocationView"/>
+
+
+
 
 
     <Button
