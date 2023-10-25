@@ -828,7 +828,7 @@ class Connection : AppCompatActivity() {
     {
         val py = Python.getInstance()
         val module = py.getModule("json_to_csv")
-        val module2 = py.getModule("dataScript")
+        val module2 = py.getModule("dataScript2")
 
 
 

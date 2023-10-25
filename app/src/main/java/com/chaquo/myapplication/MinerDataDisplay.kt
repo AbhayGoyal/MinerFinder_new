@@ -40,7 +40,7 @@ class MinerDataDisplay : AppCompatActivity() {
         val currentUserFile1 = "${Helper().getLocalUserName(applicationContext)}.json"
         val py = Python.getInstance()
         val module = py.getModule("json_to_csv")
-        val module2 = py.getModule("dataScript")
+        val module2 = py.getModule("dataScript2")
 
         module.callAttr("main", currentUserFile1)
 

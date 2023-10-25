@@ -34,11 +34,15 @@ def convert_json_to_csv(json_file_path, csv_file_path, username):
 
             # Convert the timestamp to seconds after 12 midnight on that day
             dt = datetime.datetime(*map(int, seconds_only.split(' ')[0].split('-')), *map(int, seconds_only.split(' ')[1].split(':')))
+            #print(dt)
+            #midnight = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            #seconds_after_midnight = int((dt - midnight).total_seconds())
             midnight = dt.replace(hour=0, minute=0, second=0, microsecond=0)
             seconds_after_midnight = int((dt - midnight).total_seconds())
 
+
             ## updates time entries
-            seconds_after_midnight = count*60
+            ## seconds_after_midnight = count*60
 
             ## 1 denotes a column deliberately left empty! These are placeholders either dropped from the model or to be filled later
             row = [count] + [count] + [user_name] + [1] + [1] + [seconds_after_midnight] + split_values[2:] + split_values[1:2] + split_values[2:] + split_values[0:1] + [1] # Create the row with converted timestamp and split values
@@ -78,17 +82,17 @@ def time_range_create(csv_file_path):
     range_val = highest_time - lowest_time
 
     # as 9-5 has 8 blocs, we take octants of our range.
-    octant_range = range_val/8
+    octant_range = 3600
 
     #df.loc[(df['time'] >= 0), 'time1'] = "9-10"
-    df.loc[(df['time'] >= 0) & (df['time'] <= octant_range*9), 'time1'] = "9-10"
-    #df.loc[(df['time'] >= octant_range) & (df['time'] <= octant_range*2), 'time1'] = "10-11"
-    #df.loc[(df['time'] >= octant_range*2) & (df['time'] <= octant_range*3), 'time1'] = "11-12"
-    #df.loc[(df['time'] >= octant_range*3) & (df['time'] <= octant_range*4), 'time1'] = "12-1"
-    #df.loc[(df['time'] >= octant_range*4) & (df['time'] <= octant_range*5), 'time1'] = "1-2"
-    #df.loc[(df['time'] >= octant_range*5) & (df['time'] <= octant_range*6), 'time1'] = "2-3"
-    #df.loc[(df['time'] >= octant_range*6) & (df['time'] <= octant_range*7), 'time1'] = "3-4"
-    #df.loc[(df['time'] >= octant_range*7), 'time1'] = "4-5"
+    df.loc[(df['time'] >= 0) & (df['time'] <= octant_range), 'time1'] = "9-10"
+    df.loc[(df['time'] >= octant_range) & (df['time'] <= octant_range*2), 'time1'] = "10-11"
+    df.loc[(df['time'] >= octant_range*2) & (df['time'] <= octant_range*3), 'time1'] = "11-12"
+    df.loc[(df['time'] >= octant_range*3) & (df['time'] <= octant_range*4), 'time1'] = "12-1"
+    df.loc[(df['time'] >= octant_range*4) & (df['time'] <= octant_range*5), 'time1'] = "1-2"
+    df.loc[(df['time'] >= octant_range*5) & (df['time'] <= octant_range*6), 'time1'] = "2-3"
+    df.loc[(df['time'] >= octant_range*6) & (df['time'] <= octant_range*7), 'time1'] = "3-4"
+    df.loc[(df['time'] >= octant_range*7), 'time1'] = "4-5"
     # last line has an exception for the highest value, as rounding may affect it
 
     # Write the modified DataFrame back to a CSV file
@@ -184,7 +188,7 @@ def main(filename):
     #json_file_path = 'C:/Users/Upmanyurht/Desktop/pythonstore2/7.json'
     #csv_file_path = 'C:/Users/Upmanyurht/Desktop/pythonstore2/miner7.csv'
     convert_json_to_csv(initial_path, csv_filepath, username)
-    add_dummy_entries(csv_filepath)
+    ## add_dummy_entries(csv_filepath)
     last_row_edits(csv_filepath)
     time_range_create(csv_filepath)
     letter_fix(csv_filepath)

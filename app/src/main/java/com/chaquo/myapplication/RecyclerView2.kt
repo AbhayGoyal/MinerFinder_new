@@ -154,7 +154,14 @@ class RecyclerView2 : AppCompatActivity() {
         val py = Python.getInstance()
 
         val module = py.getModule("plotScriptable")
-        module.callAttr("mainScriptable", "day1.csv")
+
+        val list_of_files = mutableListOf<String>("day1.csv","day1_1.csv", "day1_2.csv")
+
+        for (a in list_of_files)
+        {
+            module.callAttr("mainScriptable", a)
+        }
+        //module.callAttr("mainScriptable", "day1.csv")
 
         runOnUiThread()
         {
