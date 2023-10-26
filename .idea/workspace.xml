@@ -9,26 +9,36 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7736e321-8770-4ddb-9783-83caeb870fdf" name="Changes" comment="10/24">
+    <list default="true" id="7736e321-8770-4ddb-9783-83caeb870fdf" name="Changes" comment="10/25">
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/chaquo/myapplication/ConnectionChecker.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/python/3.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/python/4.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/python/5.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/7.5/executionHistory/executionHistory.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/7.5/executionHistory/executionHistory.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/7.5/executionHistory/executionHistory.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/7.5/executionHistory/executionHistory.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/7.5/fileHashes/fileHashes.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/7.5/fileHashes/fileHashes.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/7.5/fileHashes/fileHashes.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/7.5/fileHashes/fileHashes.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/7.5/fileHashes/resourceHashesCache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/7.5/fileHashes/resourceHashesCache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/file-system.probe" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/file-system.probe" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/chaquo/myapplication/Connection.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/chaquo/myapplication/Connection.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/chaquo/myapplication/Global.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/chaquo/myapplication/Global.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/chaquo/myapplication/MinerDataDisplay.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/chaquo/myapplication/MinerDataDisplay.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/chaquo/myapplication/RecyclerView2.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/chaquo/myapplication/RecyclerView2.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/python/json_to_csv.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/python/json_to_csv.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/chaquo/myapplication/item_extender.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/chaquo/myapplication/item_extender.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/chaquo/myapplication/item_holder.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/chaquo/myapplication/item_holder.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/python/dataScript2.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/python/dataScript2.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/python/day1.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/python/day1_1.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/python/day1_2.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/python/plotScriptable.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/python/plotScriptable.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[ce10160a2211103405]" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[]" />
   <component name="ExportToHTMLSettings">
     <option name="OPEN_IN_BROWSER" value="true" />
     <option name="OUTPUT_DIRECTORY" value="$PROJECT_DIR$/exportToHTML" />
@@ -218,7 +228,21 @@
       <option name="project" value="LOCAL" />
       <updated>1698174866882</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="10/24">
+      <created>1698274186441</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1698274186441</updated>
+    </task>
+    <task id="LOCAL-00003" summary="10/25">
+      <created>1698274294376</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1698274294376</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -234,6 +258,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="10/24" />
-    <option name="LAST_COMMIT_MESSAGE" value="10/24" />
+    <MESSAGE value="10/25" />
+    <option name="LAST_COMMIT_MESSAGE" value="10/25" />
   </component>
 </project>

@@ -1,5 +1,6 @@
 package com.chaquo.myapplication
 
+import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -19,7 +20,7 @@ import com.chaquo.myapplication.db.AppDatabase
 import com.chaquo.python.PyException
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
-
+import java.util.regex.Pattern
 
 
 class MinerDataDisplay : AppCompatActivity() {
@@ -47,6 +48,8 @@ class MinerDataDisplay : AppCompatActivity() {
         val currentUserFile2 = "${Helper().getLocalUserName(applicationContext)}.csv"
         module2.callAttr("main", currentUserFile2)
 
+        updateFiles()
+
 
 
         Log.d(TAG, "adding the files to the list")
@@ -67,6 +70,7 @@ class MinerDataDisplay : AppCompatActivity() {
         val itemList: MutableList<FileItem> = mutableListOf()
         val minerList: MutableList<String> = mutableListOf()
 
+
         val printableName1 = csvFiles[0].name
         Log.d(TAG, "check2: did we get here?")
 
@@ -80,8 +84,20 @@ class MinerDataDisplay : AppCompatActivity() {
 
             // get the first value in the first column:
             val firstValueInFirstColumn = firstColumnValues.getOrNull(1)
-            val stringName = "miner " + firstValueInFirstColumn.toString()
-            Log.d(TAG, "CHECK file: " + stringName)
+            //var stringName = "miner " + firstValueInFirstColumn.toString()
+            //Log.d(TAG, "CHECK file: " + stringName)
+
+            var toAdd = ""
+            // replace with array later
+            if(ConnectionChecker.isConnected)
+            {
+                if(firstValueInFirstColumn.toString() != Helper().getLocalUserName(applicationContext))
+                {
+                    toAdd = "*"
+                }
+            }
+
+            val stringName = "miner " + firstValueInFirstColumn.toString() + toAdd
 
             val fileItem = FileItem(stringName, fileData)
 
@@ -115,8 +131,51 @@ class MinerDataDisplay : AppCompatActivity() {
         val minerListR: TextView = findViewById(R.id.minerName_data)
         minerListR.text = "Miners tracked: " + minerList.joinToString(" ,")
 
+        // set to false again
+        ConnectionChecker.isConnected = false
+
 
     }
+
+    private fun updateFiles()
+    {
+        val py = Python.getInstance()
+        val module = py.getModule("json_to_csv")
+        val module2 = py.getModule("dataScript2")
+
+
+
+        val appInternalDir = applicationContext.filesDir
+        if (appInternalDir.exists() && appInternalDir.isDirectory) {
+            val jsonFiles = appInternalDir.listFiles { _, fileName ->
+                // Define a regular expression pattern to match single-digit number JSON files
+                val pattern = Pattern.compile("^[0-9]\\.json$")
+                pattern.matcher(fileName).matches()
+            }
+
+            // Iterate through the JSON files and run the python modules on them;
+            val processedFilenames = mutableListOf<String>()
+
+            jsonFiles?.forEach { jsonFile ->
+                module.callAttr("main", jsonFile.name)
+                // Add the filename to the list
+                processedFilenames.add(jsonFile.name)
+            }
+
+            val csvFilenames = processedFilenames.map { filename ->
+                val csvFilename = filename.replace(".json", ".csv")
+                module2.callAttr("main", csvFilename)
+                csvFilename // Add the modified filename to the list
+            }
+        } else {
+            Log.e("File error", "Directory does not exist or is not a directory")
+        }
+
+
+    }
+
+
+
 
 }
 
@@ -137,3 +196,4 @@ private fun readCSVFile(filePath: String): String {
         return ""
     }
 }
+

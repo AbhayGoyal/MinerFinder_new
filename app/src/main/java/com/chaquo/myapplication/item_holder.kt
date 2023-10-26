@@ -125,5 +125,6 @@ class item_holder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
     fun fillName(minerID: String) {
         textViewItem.text = minerID
+
     }
 }

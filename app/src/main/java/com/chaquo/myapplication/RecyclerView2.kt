@@ -155,7 +155,7 @@ class RecyclerView2 : AppCompatActivity() {
 
         val module = py.getModule("plotScriptable")
 
-        val list_of_files = mutableListOf<String>("day1.csv","day1_1.csv", "day1_2.csv")
+        val list_of_files = mutableListOf<String>("3.csv","4.csv", "5.csv")
 
         for (a in list_of_files)
         {

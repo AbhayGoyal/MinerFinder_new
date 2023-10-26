@@ -21,13 +21,17 @@ class item_extender(private val context: Context, private val itemList: List<Fil
         val currentItemName = itemList[position].name
         val currentItemData = itemList[position].data
 
+        val name1 = Helper().getLocalUserName(context)
+
+
         // Bind data to the views within the ViewHolder
         // fill the textView
-        holder.fillName(currentItemName)
         // Clear the table layout
         holder.clearTableLayout()
         // Fill the table with the CSV data
         holder.fillTableLayout(context, currentItemData)
+
+        holder.fillName(currentItemName)
 
 
 

@@ -12,7 +12,6 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.collection.SimpleArrayMap
@@ -26,9 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 import java.io.*
-import java.nio.charset.StandardCharsets
 import java.sql.Timestamp
 import java.io.File
 import java.util.regex.Pattern
@@ -208,6 +205,8 @@ class Connection : AppCompatActivity() {
         var mode: String = "OFF"
         if (isAdvertising && isDiscovering) {
             mode = "ON"
+            val connectionReport: TextView = findViewById<TextView>(R.id.connection_report)
+            connectionReport.text = "Searching"
         }
         else if (isAdvertising) {
             //mode = "ADVERTISING"
@@ -217,8 +216,6 @@ class Connection : AppCompatActivity() {
         }
         val connectionMode: TextView = findViewById<TextView>(R.id.connection_mode)
         connectionMode.text = "Connection Mode: $mode"
-        val connectionReport: TextView = findViewById<TextView>(R.id.connection_mode)
-        connectionReport.text = "Searching"
 
     }
 
@@ -236,6 +233,7 @@ class Connection : AppCompatActivity() {
     private fun messageDisplay(m: String) {
         val dataDisplay: TextView = findViewById<TextView>(R.id.data_received)
         dataDisplay.text = "Received: $m"
+        ConnectionChecker.isConnected = true
     }
 
     private fun linksDisplay() {
