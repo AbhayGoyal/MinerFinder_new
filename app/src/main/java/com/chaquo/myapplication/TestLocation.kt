@@ -68,8 +68,8 @@ class TestLocation : AppCompatActivity() {
             // Get the last 10 lines from the list
             val last10Lines = lines.takeLast(10)
             var output = ""
-            for (line in last10Lines) {
-                output = output + line + "\n"
+            for (line1 in last10Lines) {
+                output = output + line1 + "\n"
             }
 
             textView.text = output.toString()

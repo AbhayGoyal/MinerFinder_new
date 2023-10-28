@@ -57,7 +57,7 @@ class StepCounter : Service(){
                 System.arraycopy(event.values, 0, linearAccelerometerReading, 0, linearAccelerometerReading.size)
             } else if (event.sensor.type == Sensor.TYPE_STEP_COUNTER) {
                 step_count = event.values[0].toInt()
-                Log.d("STEPS", step_count.toString())
+                //Log.d("STEPS", step_count.toString())
             }
 //        step_handler()
         }
@@ -244,7 +244,7 @@ class StepCounter : Service(){
             val timeDiff = (System.currentTimeMillis() - startTime) / 1000
 //            val data = MovementData(comp[1].toFloat(), (comp[0] / timeDiff).toFloat(), pillar)
             val data = comp[1].toFloat().toString() + "," + (comp[0] / timeDiff).toFloat() + "," + pillar
-            Log.d("movdata", data.toString())
+            //Log.d("movdata", data.toString())
             saveJson(data.toString())
         }
     }
@@ -254,7 +254,7 @@ class StepCounter : Service(){
         val fileInputStream = openFileInput(fileName)
         val jsonString = fileInputStream.bufferedReader().use { it.readText() }
         val jsonObject = JSONObject(jsonString)
-        Log.d("json read", jsonObject.toString())
+        //Log.d("json read", jsonObject.toString())
     }
 
     private fun saveJson(jsonString: String) {
@@ -274,7 +274,7 @@ class StepCounter : Service(){
             jsonObject = JSONObject()
         }
 
-        Log.d("json file", jsonObject.toString())
+        //Log.d("json file", jsonObject.toString())
         val fileOutputStream = openFileOutput(fileName, Context.MODE_PRIVATE)
         jsonObject.put(Timestamp(System.currentTimeMillis()).toString(), jsonString)
 
@@ -298,7 +298,7 @@ class StepCounter : Service(){
         fileOutputStream.close()
 
         updateTimestampFile(userNumber.toInt())
-        Log.d("json", file.toString())
+        //Log.d("json", file.toString())
         readJson(fileName)
     }
 
@@ -311,13 +311,13 @@ class StepCounter : Service(){
         if (file.exists()) {
             val rows = file.bufferedReader().readText()
             val csv = rows.split(",").toMutableList()
-            Log.d("json", userNumber.toString())
+            //Log.d("json", userNumber.toString())
             while (csv.size < userNumber) {
                 csv.add(Timestamp(0).toString())
             }
             csv[userNumberIdx] = currentTimestamp.toString()
             timestampString = csv.joinToString(",")
-            Log.d("json timestamp", timestampString.toString())
+            //Log.d("json timestamp", timestampString.toString())
         }
         else {
             timestampString = ""

@@ -307,7 +307,7 @@ private fun testing(context: Context) {
     val level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
     val scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
 
-    val batteryPercentage = level / scale.toFloat() * 100
+    //val batteryPercentage = level / scale.toFloat() * 100
 
 }
 

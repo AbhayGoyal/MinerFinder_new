@@ -23,6 +23,7 @@ import com.chaquo.python.PyException
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import java.io.BufferedReader
+import java.io.File
 import java.io.FileInputStream
 import java.io.InputStreamReader
 
@@ -55,6 +56,43 @@ class MainActivity : AppCompatActivity() {
         val module = py.getModule("plotScriptable")
         //module.callAttr("mainScriptable", "3.csv")
         //module.callAttr("mainScriptable", "short_short_data_25.csv")
+
+
+        val filesDir1 = applicationContext.filesDir
+        val subDirectoryName = "Data"
+        val subDirectory = File(filesDir1, subDirectoryName)
+        if (!subDirectory.exists()) {
+            subDirectory.mkdirs() // Create the subdirectory if it doesn't exist
+        }
+
+        Log.d(TAG, "check1: did we get here?")
+
+        val csvFiles = subDirectory.listFiles { file ->
+            file.name.endsWith(".csv")
+        }.sortedBy { it.name }
+
+        val minerList: MutableList<String> = mutableListOf()
+
+        //val printableName1 = csvFiles[0].name
+        Log.d(TAG, "check2: did we get here?")
+
+        for (file in csvFiles) {
+
+            val filePath1 = File(subDirectory, file.name).absolutePath
+            val fileData = readCSVFile(filePath1)
+
+            val lines = fileData.trim().split("\n")
+            val firstColumnValues: List<String> = lines.map { it.split(",")[0] }
+            val firstValueInFirstColumn = firstColumnValues.getOrNull(1)
+
+
+            if(firstValueInFirstColumn != null)
+            {
+                ConnectionCheck.myList.add(firstValueInFirstColumn.toString())
+            }
+
+        }
+
 
         //py.getModule("plot")
 
@@ -97,7 +135,7 @@ class MainActivity : AppCompatActivity() {
 
     fun connectionView(view: View?)
     {
-        val intent = Intent(this, PhotoConnection::class.java)
+        val intent = Intent(this, PhotoConnection2::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
         startActivity(intent)
     }
@@ -187,6 +225,26 @@ class MainActivity : AppCompatActivity() {
         stopService(Intent(this, StepCounter::class.java))
         super.onDestroy()
     }
+
+
+    private fun readCSVFile(filePath: String): String {
+        try {
+            val file1 = FileInputStream(filePath)
+            val reader1 = InputStreamReader(file1)
+            val buffread1 = BufferedReader(reader1)
+            val sb = StringBuilder()
+            var line: String?
+            while (buffread1.readLine().also { line = it } != null) {
+                sb.append(line).append("\n")
+            }
+            buffread1.close()
+            return sb.toString()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return ""
+        }
+    }
+
 
 
 

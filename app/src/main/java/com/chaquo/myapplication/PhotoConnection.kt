@@ -103,6 +103,9 @@ class PhotoConnection : AppCompatActivity() {
         viewBinding.onButton2.setOnClickListener { modeOn() }
         viewBinding.makeConnectionButton.setOnClickListener{ showEndpointDialog()}
 
+        stopAdvertising()
+        stopDiscovery()
+
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
@@ -162,7 +165,7 @@ class PhotoConnection : AppCompatActivity() {
 
     private fun startDiscovery() {
         val discoveryOptions: DiscoveryOptions = DiscoveryOptions.Builder().setStrategy(STRATEGY).build()
-        val connectionReport: TextView = findViewById<TextView>(R.id.connection_report)
+        //val connectionReport: TextView = findViewById<TextView>(R.id.connection_report)
 
         Nearby.getConnectionsClient(context)
             .startDiscovery(SERVICE_ID, endpointDiscoveryCallback, discoveryOptions)

@@ -41,7 +41,7 @@ import java.util.Locale
 
 
 // RENAME TO CONNECTION IF USING AGAIN
-class Connection : AppCompatActivity() {
+class Connection : AppCompatActivity(){
     private val TAG = "Connection"
     private val SERVICE_ID = "Nearby"
     private val STRATEGY: Strategy = Strategy.P2P_CLUSTER
@@ -217,7 +217,7 @@ class Connection : AppCompatActivity() {
         }
         val connectionMode: TextView = findViewById<TextView>(R.id.connection_mode)
         connectionMode.text = "Connection Mode: $mode"
-        val connectionReport: TextView = findViewById<TextView>(R.id.connection_mode)
+        val connectionReport: TextView = findViewById<TextView>(R.id.connection_report)
         connectionReport.text = "Searching"
 
     }
@@ -337,12 +337,16 @@ class Connection : AppCompatActivity() {
             override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
                 // An endpoint was found. We request a connection to it.
 //                stopDiscovery()
+                Log.d("ENDPOINT FOUND", info.endpointName)
+                val endpointName = info.endpointName
                 Nearby.getConnectionsClient(context)
                     .requestConnection(userNumber, endpointId, connectionLifecycleCallback)
                     .addOnSuccessListener { unused: Void? ->
-                        connectionDisplay("Found endpoint. Requesting connection.")
+                        //connectionDisplay("Connected to $endpointName.")
                         global?.found_eid?.add(endpointId)
-                        Log.d("eidlist", global?.found_eid.toString())
+                        //Log.d("eidlist", global?.found_eid.toString())
+                        //links.add(listOf(endpointId, endpointName))
+                        //linksDisplay()
                     }
                     .addOnFailureListener { e: java.lang.Exception? ->
 //                        connectionDisplay("Found endpoint. Failed to request connection.") // rm for display
@@ -353,8 +357,9 @@ class Connection : AppCompatActivity() {
 
             override fun onEndpointLost(endpointId: String) {
                 // A previously discovered endpoint has gone away.
-                Log.d("status", "lost")
-                connectionDisplay("Lost endpoint")
+                //Log.d("status", "lost")
+                //val lostEndpoint = links.find { it[0] == endpointId }
+                //connectionDisplay("Lost endpoint: $lostEndpoint")
             }
         }
 
@@ -368,18 +373,8 @@ class Connection : AppCompatActivity() {
             override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {
                 when (result.status.statusCode) {
                     ConnectionsStatusCodes.STATUS_OK -> {
-                        connectionDisplay("Made a connection")
+                        //connectionDisplay("Made a connection")
                         sendTimestamps(endpointId)
-//                        val timestamp = Timestamp(System.currentTimeMillis())
-//
-//                        val bytesPayload = Payload.fromBytes(serialize(timestamp))
-//                        Log.d("MESSAGE", bytesPayload.toString())
-//                        if(isAdvertising) {
-//                            GlobalScope.launch(Dispatchers.IO) {
-//                                constantSend(endpointId)
-//                            }
-//                        }
-//                            Nearby.getConnectionsClient(context).sendPayload(endpointId, bytesPayload)
 
                     }
                     ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> {
@@ -425,7 +420,7 @@ class Connection : AppCompatActivity() {
 
 //                val dataDisplay: TextView = findViewById<TextView>(R.id.data_received)
 //                dataDisplay.text = "Message: $receivedBytes"
-                connectionDisplay("Message received.")
+                //connectionDisplay("Message received.")
 
                 evalMessage(receivedBytes.toString(), endpointId)
 
@@ -499,7 +494,7 @@ class Connection : AppCompatActivity() {
 
         if (message.contains("lost connection to")) {
             messageDisplay(message)
-            offline.add(message.last().toString())
+                    offline.add(message.last().toString())
             offlineDisplay()
         }
         else if (message.contains("regained connection to")) {
@@ -701,8 +696,10 @@ class Connection : AppCompatActivity() {
         csv.removeAt(csv.size.toInt()-1)
         csv.removeAt(csv.size.toInt()-1)
         messageDisplay("Received $minerNumber.json")
-        Log.d("csv", message)
-        Log.d("csv#", minerNumber.toString())
+        //Log.d("csv", message)
+        //Log.d("csv#", minerNumber.toString())
+        ConnectionCheck.myList.remove(minerNumber.toString())
+
 
         // update miner data file
         val fileName = "$minerNumber.json"
@@ -755,7 +752,6 @@ class Connection : AppCompatActivity() {
             val bytesPayload = Payload.fromBytes(serialize(contents))
             Nearby.getConnectionsClient(context).sendPayload(endpointId, bytesPayload)
         }
-
     }
 
     fun sendOnline(number: String) {

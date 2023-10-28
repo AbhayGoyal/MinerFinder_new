@@ -19,7 +19,7 @@ import com.chaquo.myapplication.db.AppDatabase
 import com.chaquo.python.PyException
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
-
+import java.util.regex.Pattern
 
 
 class MinerDataDisplay : AppCompatActivity() {
@@ -48,6 +48,7 @@ class MinerDataDisplay : AppCompatActivity() {
         module2.callAttr("main", currentUserFile2)
 
 
+        updateFiles()
 
         Log.d(TAG, "adding the files to the list")
 
@@ -80,15 +81,33 @@ class MinerDataDisplay : AppCompatActivity() {
 
             // get the first value in the first column:
             val firstValueInFirstColumn = firstColumnValues.getOrNull(1)
-            val stringName = "miner " + firstValueInFirstColumn.toString()
-            Log.d(TAG, "CHECK file: " + stringName)
+            //val stringName = "miner " + firstValueInFirstColumn.toString()
+            //Log.d(TAG, "CHECK file: " + stringName)
 
-            val fileItem = FileItem(stringName, fileData)
 
             if(firstValueInFirstColumn != null)
             {
                 minerList.add(firstValueInFirstColumn.toString())
             }
+
+            var toAdd = ""
+            // replace with array later
+            val toCheckName = firstValueInFirstColumn.toString()
+            val isInList = ConnectionCheck.myList.contains(toCheckName)
+            if(!isInList)
+            {
+                if(firstValueInFirstColumn.toString() != Helper().getLocalUserName(applicationContext))
+                {
+                    toAdd = "*"
+                }
+
+                ConnectionCheck.myList.add(toCheckName)
+            }
+
+            val stringName = "miner " + firstValueInFirstColumn.toString() + toAdd
+
+            val fileItem = FileItem(stringName, fileData)
+
 
             if (fileItem != null) {
                 itemList.add(fileItem)
@@ -117,6 +136,45 @@ class MinerDataDisplay : AppCompatActivity() {
 
 
     }
+
+
+    fun updateFiles()
+    {
+        val py = Python.getInstance()
+        val module = py.getModule("json_to_csv")
+        val module2 = py.getModule("dataScript2")
+
+
+
+        val appInternalDir = applicationContext.getFilesDir()
+        if (appInternalDir.exists() && appInternalDir.isDirectory) {
+            val jsonFiles = appInternalDir.listFiles { _, fileName ->
+                // Define a regular expression pattern to match single-digit number JSON files
+                val pattern = Pattern.compile("^[0-9]\\.json$")
+                pattern.matcher(fileName).matches()
+            }
+
+            // Iterate through the JSON files and run the python modules on them;
+            val processedFilenames = mutableListOf<String>()
+
+            jsonFiles?.forEach { jsonFile ->
+                module.callAttr("main", jsonFile.name)
+                // Add the filename to the list
+                processedFilenames.add(jsonFile.name)
+            }
+
+            val csvFilenames = processedFilenames.map { filename ->
+                val csvFilename = filename.replace(".json", ".csv")
+                module2.callAttr("main", csvFilename)
+                csvFilename // Add the modified filename to the list
+            }
+        } else {
+            Log.e("File error", "Directory does not exist or is not a directory")
+        }
+
+
+    }
+
 
 }
 
