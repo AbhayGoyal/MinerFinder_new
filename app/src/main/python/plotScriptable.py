@@ -1131,12 +1131,6 @@ def mainScriptable(usernameA):
         print("conv list", conv_list)
         try:
 
-            # I don't think the dictionaries worked well.
-            #edge_dict = data_curr['edge'].to_dict()
-            #traj_future_dict = data_curr['traj_future'].to_dict()
-            #print("edgedict", edge_dict)
-            #print("trajfuturedict", traj_future_dict)
-
             #from_loc = conv_list[edges[ind][0]]
             from_loc = conv_list[edges[max_index][0]]
 

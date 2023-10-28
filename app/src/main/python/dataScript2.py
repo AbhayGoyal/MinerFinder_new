@@ -33,7 +33,7 @@ def process_csv_2(input_file, output_file):
     time_column = last_4_entries['time']
 
     # Perform calculations on the last_4_entries DataFrame
-    last_4_entries['time1'] = ((((last_4_entries['time'] / 3600)%8) + 9).astype(int).astype(str)).str.zfill(2) + ':' + ((last_4_entries['time'] % 3600) // 60).astype(int).astype(str).str.zfill(2)
+    last_4_entries['time1'] = (((last_4_entries['time'] / 3600)%8)).astype(int).astype(str) + ':' + ((last_4_entries['time'] % 3600) // 60).astype(int).astype(str)
 
     last_4_entries.drop(columns=['time'], inplace=True)
 
