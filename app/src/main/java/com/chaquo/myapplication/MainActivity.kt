@@ -53,7 +53,7 @@ class MainActivity : AppCompatActivity() {
         }
         val py = Python.getInstance()
         // runs the python file called plot.py in the python folder
-        val module = py.getModule("plotScriptable")
+        //val module = py.getModule("plotScriptable")
         //module.callAttr("mainScriptable", "3.csv")
         //module.callAttr("mainScriptable", "short_short_data_25.csv")
 
@@ -179,11 +179,13 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
+    /*
     fun testLocationView(view: View?) {
         val intent = Intent(this, TestLocation::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
         startActivity(intent)
     }
+     */
 
 
 

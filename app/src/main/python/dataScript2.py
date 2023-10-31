@@ -33,7 +33,7 @@ def process_csv_2(input_file, output_file):
     time_column = last_4_entries['time']
 
     # Perform calculations on the last_4_entries DataFrame
-    last_4_entries['time1'] = (((last_4_entries['time'] / 3600)%8)).astype(int).astype(str) + ':' + ((last_4_entries['time'] % 3600) // 60).astype(int).astype(str)
+    last_4_entries['time1'] = ((((last_4_entries['time'] / 3600)%8) + 9).astype(int).astype(str)).str.zfill(2) + ':' + (((last_4_entries['time'] % 3600) // 60).astype(int).astype(str)).str.zfill(2)
 
     last_4_entries.drop(columns=['time'], inplace=True)
 
@@ -94,8 +94,6 @@ def process_csv(input_file, output_file):
                 # Append the row to the list
                 modified_data.append(row)
 
-
-
     
     # Combine the modified data from all groups into a single DataFrame
     modified_df = pd.concat(modified_data)
@@ -109,6 +107,49 @@ def process_csv(input_file, output_file):
 
     # Save the modified data to a new CSV file
     modified_df.to_csv(output_file, index=False)
+
+
+def result_correction(input_file):
+    df = pd.read_csv(input_file)
+    last_id = df['ID'].iloc[-1]
+    last_time = df["time[hh:mm]"].iloc[-1]
+
+    folder_name = "Results"
+    filename = "miner" + str(last_id) + "results.csv"
+    # path to the abovementioned directory, where we store initial data in
+    # initial_path = os.path.join(os.path.dirname(__file__), input_name)
+    dir1 = str(Python.getPlatform().getApplication().getFilesDir())
+
+    initial_path = os.path.join(dir1, folder_name)
+    initial_path_2 = os.path.join(initial_path, filename)
+
+    if not os.path.exists(initial_path_2):
+        print("Doesn't exist! 113456")
+        return 1
+    
+    df2 = pd.read_csv(initial_path_2)
+
+    last_time_2 = df2["time"].iloc[-1]
+
+    result_time = last_time_2.split("-")
+    result_hour = min(int(result_time[0]), int(result_time[1]))
+
+    initial_time = last_time.split(":")
+    initial_hour = int(initial_time[0])
+    print("value comparisons", initial_hour, result_hour)
+
+    given_numbers = [52, 54, 56, 58]
+
+    a = ((result_hour > 8) and (result_hour != initial_hour)) or ( (result_hour <= 8) and (result_hour != (initial_hour - 12)))
+
+    if((a) and (result_hour != 9)):
+        target_hour = result_hour - 1
+        df['time[hh:mm]'] = df.apply(lambda row: f"{int(target_hour):02d}:{given_numbers[row.name % len(given_numbers)]:02d}", axis=1)
+    
+    
+    df.to_csv(input_file, index=False)
+    return 1
+
 
 
 def main(input_name):
@@ -148,3 +189,5 @@ def main(input_name):
     #print("Filtered data saved to 'Data/filtered_data.csv'")
 
     process_csv_2(filepath, filepath)
+
+    result_correction(filepath)
