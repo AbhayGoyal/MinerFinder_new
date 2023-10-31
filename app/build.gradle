@@ -11,7 +11,7 @@ android {
     namespace 'com.chaquo.myapplication'
 
     defaultConfig {
-        applicationId "com.chaquo.myapplication"
+        applicationId 'com.chaquo.minerfinder_demo'
         minSdkVersion 21
         targetSdkVersion 31
         versionCode 1
@@ -60,7 +60,7 @@ android {
 android.applicationVariants.all { variant ->
 
     variant.outputs.all {
-        outputFileName = "MinerFinder_Demo-${variant.versionName}.apk"
+        outputFileName = "MinerFinder_Demo_2.apk"
     }
 }
 

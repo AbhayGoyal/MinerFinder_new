@@ -131,7 +131,7 @@ class Connection : AppCompatActivity(){
         intent.type = "image/*"
         intent.putExtra(ENDPOINT_ID_EXTRA, endpointId)
         startActivityForResult(intent, READ_REQUEST_CODE)
-        Log.d(TAG, "end img")
+        //Log.d(TAG, "end img")
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
@@ -139,7 +139,7 @@ class Connection : AppCompatActivity(){
         if (requestCode == READ_REQUEST_CODE && resultCode == RESULT_OK && resultData != null) {
 //            val endpointId = resultData.getStringExtra(ENDPOINT_ID_EXTRA)
             val endpointId = this.eid
-            Log.d("EID", endpointId.toString())
+            //Log.d("EID", endpointId.toString())
 
             // The URI of the file selected by the user.
             val uri = resultData.data
@@ -156,7 +156,7 @@ class Connection : AppCompatActivity(){
             // Construct a simple message mapping the ID of the file payload to the desired filename.
             val filenameMessage = filePayload.id.toString() + ":" + uri.lastPathSegment + "2"
 
-            Log.d("FILENAME", filenameMessage)
+            //Log.d("FILENAME", filenameMessage)
 
             // Send the filename message as a bytes payload.
             val filenameBytesPayload = Payload.fromBytes(serialize(filenameMessage))
@@ -165,10 +165,10 @@ class Connection : AppCompatActivity(){
 
             // Finally, send the file payload.
             if(endpointId != null) {
-                Log.d(TAG, "in result")
+                //Log.d(TAG, "in result")
 
                 Nearby.getConnectionsClient(context).sendPayload(endpointId, filePayload).addOnSuccessListener {
-                    Log.d(TAG, "successful send?")
+                    //Log.d(TAG, "successful send?")
                 }
             }
         }
@@ -200,7 +200,7 @@ class Connection : AppCompatActivity(){
             ActivityCompat.requestPermissions(this, arrayOf(permission), requestCode)
         }
         else {
-            Log.d(TAG, "Permissions not denied")
+            //Log.d(TAG, "Permissions not denied")
         }
     }
 
@@ -279,7 +279,7 @@ class Connection : AppCompatActivity(){
         if(isAdvertising && singleMode)
             stopAdvertising()
 
-        Log.d("FUNCTION", "sd")
+        //Log.d("FUNCTION", "sd")
 
         Nearby.getConnectionsClient(context)
             .startDiscovery(SERVICE_ID, endpointDiscoveryCallback, discoveryOptions)
@@ -337,7 +337,7 @@ class Connection : AppCompatActivity(){
             override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
                 // An endpoint was found. We request a connection to it.
 //                stopDiscovery()
-                Log.d("ENDPOINT FOUND", info.endpointName)
+                //Log.d("ENDPOINT FOUND", info.endpointName)
                 val endpointName = info.endpointName
                 Nearby.getConnectionsClient(context)
                     .requestConnection(userNumber, endpointId, connectionLifecycleCallback)
@@ -390,7 +390,7 @@ class Connection : AppCompatActivity(){
             override fun onDisconnected(endpointId: String) {
                 // We've been disconnected from this endpoint. No more data can be
                 // sent or received.
-                Log.d("status", "disconnected")
+                //Log.d("status", "disconnected")
                 connectionDisplay("Disconnected from endpoint.")
                 val lostNumber = links.find { it[0] == endpointId }
                 if (lostNumber != null) {
@@ -416,7 +416,7 @@ class Connection : AppCompatActivity(){
             // This always gets the full data of the payload. Is null if it's not a BYTES payload.
             if (payload.type == Payload.Type.BYTES) {
                 val receivedBytes = SerializationHelper.deserialize(payload.asBytes())
-                Log.d("MESSAGE", receivedBytes.toString())
+                //Log.d("MESSAGE", receivedBytes.toString())
 
 //                val dataDisplay: TextView = findViewById<TextView>(R.id.data_received)
 //                dataDisplay.text = "Message: $receivedBytes"
@@ -435,12 +435,12 @@ class Connection : AppCompatActivity(){
             }
             else if (payload.type == Payload.Type.FILE)
             {
-                Log.d(TAG, "receiving file?")
+                //Log.d(TAG, "receiving file?")
                 // Add this to our tracking map, so that we can retrieve the payload later.
                 incomingFilePayloads.put(payload.id, payload);
 
                 val fileUri = payload.asFile()!!.asUri()
-                Log.d("saveimage", fileUri.toString())
+                //Log.d("saveimage", fileUri.toString())
             }
         }
 
@@ -490,7 +490,7 @@ class Connection : AppCompatActivity(){
     // add 0 to end of file if its timestamps; 1 if its miner data ; 2 for a file name
 
     fun evalMessage(message: String, endpointId: String) {
-        Log.d("evalmes", message)
+        //Log.d("evalmes", message)
 
         if (message.contains("lost connection to")) {
             messageDisplay(message)
@@ -522,7 +522,7 @@ class Connection : AppCompatActivity(){
                 }
 
 
-                Log.d("stampbug", newMessage.dropLast(1).toString())
+                //Log.d("stampbug", newMessage.dropLast(1).toString())
                 evalTimestamps(newMessage.dropLast(1).joinToString(), endpointId)
                 runOnUiThread {
                     connectionDisplay("Received timestamp.csv from User #$otherUser")
@@ -545,26 +545,26 @@ class Connection : AppCompatActivity(){
         val parts = payloadFilenameMessage.split(":").toTypedArray()
         val payloadId = parts[0].toLong()
         val filename = parts[1]
-        Log.d("NAME", filename)
+        //Log.d("NAME", filename)
 
         filePayloadFilenames.put(payloadId, filename)
         return payloadId
     }
 
     private fun processFilePayload(payloadId: Long) {
-        Log.d("PATH", "IN PROCFILE")
+        //Log.d("PATH", "IN PROCFILE")
         // BYTES and FILE could be received in any order, so we call when either the BYTES or the FILE
         // payload is completely received. The file payload is considered complete only when both have
         // been received.
         val filePayload = completedFilePayloads[payloadId]
         val filename: String? = filePayloadFilenames.get(payloadId)
         if(filename != null)
-            Log.d("PFP", filename)
+            //Log.d("PFP", filename)
         if (filePayload != null && filename != null) {
             completedFilePayloads.remove(payloadId)
             filePayloadFilenames.remove(payloadId)
 
-            Log.d("DOWN", "ABOVE REMOVE DOWN")
+            //Log.d("DOWN", "ABOVE REMOVE DOWN")
 
             // Get the received file (which will be in the Downloads folder)
             // Because of https://developer.android.com/preview/privacy/scoped-storage, we are not
@@ -594,12 +594,12 @@ class Connection : AppCompatActivity(){
             put(MediaStore.Images.Media.TITLE, imageTitle)
             put(MediaStore.Images.Media.DESCRIPTION, imageDescription)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                Log.d("image1", MediaStore.Images.Media.RELATIVE_PATH)
+                //Log.d("image1", MediaStore.Images.Media.RELATIVE_PATH)
                 put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Received-Images-MinerFinder")
             }
         }
 
-        Log.d("image2", MediaStore.Images.Media.RELATIVE_PATH)
+        //Log.d("image2", MediaStore.Images.Media.RELATIVE_PATH)
 
 
         val contentResolver = context.contentResolver
@@ -681,7 +681,7 @@ class Connection : AppCompatActivity(){
                 return
             }
         }
-        Log.d("csv%", minerNumber.toString())
+        //Log.d("csv%", minerNumber.toString())
         val contents = file.readText() + ",$minerNumber,$timestamp" + "1"
         val bytesPayload = Payload.fromBytes(serialize(contents))
         Nearby.getConnectionsClient(context).sendPayload(endpointId, bytesPayload)
@@ -690,7 +690,7 @@ class Connection : AppCompatActivity(){
 
     fun readMiner(message: String) {
         val csv = message.split(",").toMutableList()
-        Log.d("csvbug", csv.toString())
+        //Log.d("csvbug", csv.toString())
         val minerNumber: Int = csv[csv.size.toInt()-2].toInt()
         val timestamp: Timestamp = Timestamp.valueOf(csv[csv.size.toInt()-1])
         csv.removeAt(csv.size.toInt()-1)
