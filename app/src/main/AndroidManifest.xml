@@ -51,6 +51,11 @@
         <activity
             android:name=".Account"
             android:exported="false" />
+
+        <activity
+            android:name=".Pillar"
+            android:exported="false" />
+
         <activity
             android:name=".DataDisplay"
             android:exported="false" />

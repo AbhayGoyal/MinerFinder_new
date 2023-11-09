@@ -179,6 +179,13 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
+    fun PillarView(view: View?) {
+        val intent = Intent(this, Pillar::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+        startActivity(intent)
+    }
+
+
     /*
     fun testLocationView(view: View?) {
         val intent = Intent(this, TestLocation::class.java)

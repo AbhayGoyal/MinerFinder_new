@@ -9,9 +9,22 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Binder
+import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import android.widget.TextView
 import com.chaquo.myapplication.databinding.ActivitySensorsBinding
+import com.google.android.gms.nearby.Nearby
+import com.google.android.gms.nearby.connection.AdvertisingOptions
+import com.google.android.gms.nearby.connection.ConnectionInfo
+import com.google.android.gms.nearby.connection.ConnectionLifecycleCallback
+import com.google.android.gms.nearby.connection.ConnectionResolution
+import com.google.android.gms.nearby.connection.ConnectionsStatusCodes
+import com.google.android.gms.nearby.connection.DiscoveredEndpointInfo
+import com.google.android.gms.nearby.connection.DiscoveryOptions
+import com.google.android.gms.nearby.connection.EndpointDiscoveryCallback
+import com.google.android.gms.nearby.connection.Strategy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -39,6 +52,25 @@ class StepCounter : Service(){
     private var step_count = 0
 
     private val avg_step_size = 0.76 // meters
+
+    // for the connection
+    val allPillarList: List<Char> = ('A'..'Z').toList()
+    val pillarCurrentlyReceived = mutableListOf<String>()
+    val minersCurrentlyFound = mutableListOf<String>()
+    private val links = mutableListOf<List<String>>()
+    var advertisingID: String = ""
+    private val SERVICE_ID = "MinerFinder_Pillar"
+    private val STRATEGY: Strategy = Strategy.P2P_CLUSTER
+    private val context: Context = this
+
+    // Binder lets us call public fns we define
+    // in other activites.
+    inner class MyBinder : Binder() {
+        fun getService(): StepCounter = this@StepCounter
+    }
+
+    private val binder = MyBinder()
+
 
     private val mStepCounterListener: SensorEventListener = object : SensorEventListener {
         override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
@@ -190,11 +222,148 @@ class StepCounter : Service(){
         }
     }
 
+    // remove the code up above.
+    // once we don't need to manually set locations.
+
+    private fun startAdvertising() {
+        val advertisingOptions: AdvertisingOptions = AdvertisingOptions.Builder().setStrategy(STRATEGY).build()
+
+        val endpointName = advertisingID
+        Nearby.getConnectionsClient(context)
+            .startAdvertising(
+                endpointName, SERVICE_ID, connectionLifecycleCallback, advertisingOptions
+            )
+            .addOnSuccessListener { unused: Void? ->
+                Log.d("Advertising as Pillar:", endpointName)
+
+                // this should also update the activity I call it from with runOnUI.
+                // I am not sure what's a good way to do this atm
+            }
+            .addOnFailureListener { e: Exception? ->
+                Log.d("Advertising as Pillar:", "Failed")
+            }
+    }
+
+    private val connectionLifecycleCallback: ConnectionLifecycleCallback =
+        object : ConnectionLifecycleCallback() {
+
+            override fun onConnectionInitiated(endpointId: String, connectionInfo: ConnectionInfo) {
+                Log.d("CONINFO", connectionInfo.toString())
+                Log.d("CONINFO", endpointId.toString())
+                Log.d("CONINFO", context.toString())
+            }
+
+            override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {
+
+                when (result.status.statusCode) {
+                    ConnectionsStatusCodes.STATUS_OK -> {
+                        Log.d("CONINFO", "Connected")
+                    }
+                    ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> {
+                        Log.d("CONINFO", "Rejected")
+
+                    }
+                    ConnectionsStatusCodes.STATUS_ERROR -> {
+                        Log.d("CONINFO", "Error")
+
+                    }
+                    else -> {}
+                }
+            }
+
+            override fun onDisconnected(endpointId: String) {
+                Log.d("DISCONNECTED", "start disconnecting")
+            }
+        }
+
+
+    private fun startDiscovery() {
+        val discoveryOptions: DiscoveryOptions = DiscoveryOptions.Builder()
+            .setStrategy(STRATEGY)
+            .build()
+
+        Nearby.getConnectionsClient(context)
+            .startDiscovery(SERVICE_ID, endpointDiscoveryCallback, discoveryOptions)
+            .addOnSuccessListener { unused: Void? ->
+                //this.isDiscovering = true
+                Log.d("Pillar_ID", "Started Discovering Pillars")
+            }
+            .addOnFailureListener { e: java.lang.Exception? -> }
+    }
+
+    fun stopAdvertising() {
+        Nearby.getConnectionsClient(context).stopAdvertising()
+        advertisingID = ""
+    }
+
+    fun stopDiscovery() {
+        Nearby.getConnectionsClient(context).stopDiscovery()
+        //this.isDiscovering = false
+    }
+
+    private val endpointDiscoveryCallback: EndpointDiscoveryCallback =
+        object : EndpointDiscoveryCallback() {
+            override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
+                val discoveredEndpointName = info.endpointName
+                val discoveredEndpointID = endpointId
+                Log.d("Connection-Pillar", "Pillar $discoveredEndpointName found")
+
+                // add the pillar to the map.
+                if (discoveredEndpointName.length == 1 && discoveredEndpointName[0] in allPillarList) {
+                    Log.d("Pillar:added", "$discoveredEndpointName")
+                    links.add(listOf(discoveredEndpointID, discoveredEndpointName))
+                    pillarCurrentlyReceived.add(discoveredEndpointName)
+                    Log.d("Pillar:total", pillarCurrentlyReceived.toString())
+                }
+            }
+
+            override fun onEndpointLost(endpointId: String) {
+                // Update the list of pillar
+                val pillarLost = links.find { it[0] == endpointId }
+                var pillarName = pillarLost?.get(1).toString()
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    links.removeIf { it[0] == endpointId }
+                    pillarCurrentlyReceived.removeIf {it == pillarName}
+                    Log.d("Tried to Remove", "$pillarName")
+                }
+            }
+        }
+
+    // needs to be public so we can call with our Service
+    fun setPillar(pillarName: String)
+    {
+        if (pillarName.length == 1 && pillarName[0] in allPillarList) {
+            stopAdvertising()
+            Log.d("Pillar_Connection", "tried to start advertising as $pillarName")
+            advertisingID = pillarName + "P"
+            startAdvertising()
+        }
+    }
+
+    fun getPillarNew(): String
+    {
+        if(pillarCurrentlyReceived.isNotEmpty())
+        {
+            return pillarCurrentlyReceived[0]
+        }
+        else
+        {
+            return ""
+        }
+    }
+
+    fun getPillarList(): MutableList<String> {
+        return pillarCurrentlyReceived
+    }
+
+
     override fun onCreate() {
         super.onCreate()
         // Register the BroadcastReceiver
         val filter = IntentFilter(ACTION_SET_PILLAR)
         registerReceiver(receiver, filter)
+        startDiscovery()
     }
 
 
@@ -204,7 +373,8 @@ class StepCounter : Service(){
         var angle: Int = 0
         var distance: Double = 0.0
         var pillar: String = "A"
-        val INTERVAL: Long = 120 // seconds
+        // as 5 seconds for testing
+        val INTERVAL: Long = 5 // seconds
         while (true) {
             var x: Double = 0.0
             var y: Double = 0.0
@@ -229,8 +399,8 @@ class StepCounter : Service(){
 
                  */
                 val res = randomPillar(pillar, 0.3f)
-                var pillar2 = getPillar()
-                if (pillar2 != pillar) {
+                var pillar2 = getPillarNew()
+                if (pillar2 != pillar && (pillar2.isNotEmpty())) {
                     Log.d("BREAK", "from $pillar to $pillar2")
                     pillar = pillar2
                     break
@@ -354,7 +524,8 @@ class StepCounter : Service(){
         return listOf(mag, angle)
     }
 
-    override fun onBind(intent: Intent): IBinder {
-        TODO("Return the communication channel to the service.")
+    override fun onBind(intent: Intent?): IBinder? {
+        return binder
     }
+
 }

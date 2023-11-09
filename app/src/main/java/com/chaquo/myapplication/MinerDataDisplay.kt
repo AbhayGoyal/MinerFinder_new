@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.util.Log
+import android.widget.Button
 import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
@@ -26,6 +27,16 @@ class MinerDataDisplay : AppCompatActivity() {
 
     private val TAG = "NavigationView"
 
+    val itemList: MutableList<FileItem> = mutableListOf()
+    val adapter = item_extender(this, itemList, object : item_extender.OnItemClickListener {
+        override fun onItemClick(item: FileItem) {
+            // Handle item click event here, you can access the selected FileItem object
+
+
+        }
+    })
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -35,6 +46,11 @@ class MinerDataDisplay : AppCompatActivity() {
 
         setContentView(R.layout.activity_data)
 
+        val buttonUpdate: Button = findViewById(R.id.button_update_miner_data)
+
+        buttonUpdate.setOnClickListener {
+            update_display()
+        }
 
         // this is to add the current user's file
         val currentUserFile1 = "${Helper().getLocalUserName(applicationContext)}.json"
@@ -65,7 +81,7 @@ class MinerDataDisplay : AppCompatActivity() {
             file.name.endsWith(".csv")
         }.sortedBy { it.name }
 
-        val itemList: MutableList<FileItem> = mutableListOf()
+        itemList.clear()
         val minerList: MutableList<String> = mutableListOf()
 
         val printableName1 = csvFiles[0].name
@@ -118,6 +134,7 @@ class MinerDataDisplay : AppCompatActivity() {
         val layoutManager: RecyclerView.LayoutManager = LinearLayoutManager(this)
         recyclerView.layoutManager = layoutManager
 
+        /*
         val adapter = item_extender(this, itemList, object : item_extender.OnItemClickListener {
             override fun onItemClick(item: FileItem) {
                 // Handle item click event here, you can access the selected FileItem object
@@ -125,6 +142,9 @@ class MinerDataDisplay : AppCompatActivity() {
 
             }
         })
+         */
+
+        adapter.notifyDataSetChanged()
 
         recyclerView.adapter = adapter
 
@@ -175,7 +195,68 @@ class MinerDataDisplay : AppCompatActivity() {
 
     }
 
+    fun update_display()
+    {
+        updateFiles()
 
+        val filesDir1 = applicationContext.filesDir
+        val subDirectoryName = "Data"
+        val subDirectory = File(filesDir1, subDirectoryName)
+        if (!subDirectory.exists()) {
+            subDirectory.mkdirs() // Create the subdirectory if it doesn't exist
+        }
+
+        Log.d(TAG, "check1: inside update_list?")
+
+        val csvFiles = subDirectory.listFiles { file ->
+            file.name.endsWith(".csv")
+        }.sortedBy { it.name }
+
+        itemList.clear()
+        val minerList: MutableList<String> = mutableListOf()
+
+        for (file in csvFiles) {
+
+            val filePath1 = File(subDirectory, file.name).absolutePath
+            val fileData = readCSVFile(filePath1)
+
+            val lines = fileData.trim().split("\n")
+            val firstColumnValues: List<String> = lines.map { it.split(",")[0] }
+
+            // get the first value in the first column:
+            val firstValueInFirstColumn = firstColumnValues.getOrNull(1)
+
+            if(firstValueInFirstColumn != null)
+            {
+                minerList.add(firstValueInFirstColumn.toString())
+            }
+
+            var toAdd = ""
+            // replace with array later
+            val toCheckName = firstValueInFirstColumn.toString()
+            val isInList = ConnectionCheck.myList.contains(toCheckName)
+            if(!isInList)
+            {
+                if(firstValueInFirstColumn.toString() != Helper().getLocalUserName(applicationContext))
+                {
+                    toAdd = "*"
+                }
+
+                ConnectionCheck.myList.add(toCheckName)
+            }
+
+            val stringName = "miner " + firstValueInFirstColumn.toString() + toAdd
+
+            val fileItem = FileItem(stringName, fileData)
+
+
+            if (fileItem != null) {
+                itemList.add(fileItem)
+            }
+        }
+
+        adapter.notifyDataSetChanged()
+    }
 }
 
 private fun readCSVFile(filePath: String): String {

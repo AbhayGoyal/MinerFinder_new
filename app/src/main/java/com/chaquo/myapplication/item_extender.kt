@@ -45,6 +45,9 @@ class item_extender(private val context: Context, private val itemList: List<Fil
     override fun getItemCount(): Int {
         return itemList.size
     }
+
+
+
 }
 
 data class FileItem(val name: String, val data: String)
