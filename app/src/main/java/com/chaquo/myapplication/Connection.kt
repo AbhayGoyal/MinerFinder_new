@@ -3,13 +3,16 @@ package com.chaquo.myapplication
 //import com.google.android.gms.common.util.IOUtils.copyStream
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.ImageView
@@ -43,7 +46,7 @@ import java.util.Locale
 // RENAME TO CONNECTION IF USING AGAIN
 class Connection : AppCompatActivity(){
     private val TAG = "Connection"
-    private val SERVICE_ID = "Nearby"
+    private val SERVICE_ID = "Data_Transfer"
     private val STRATEGY: Strategy = Strategy.P2P_CLUSTER
     private val context: Context = this
 
@@ -71,7 +74,62 @@ class Connection : AppCompatActivity(){
         private const val LOCATION_PERMISSION_CODE = 100
     }
 
+    // for binding the service
+    private lateinit var stepCounter_Pillar: StepCounter
+    var isBound = false
+    private var currentID: String = ""
+    private var isPillar = false
+
+    // binds the service
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder = service as StepCounter.MyBinder
+            stepCounter_Pillar = binder.getService()
+            isBound = true
+
+            // after binding, look for
+            if (stepCounter_Pillar.advertisingID.isNotEmpty()) {
+                Log.d("SAVEDSTATE", "HERE")
+                currentID = stepCounter_Pillar.advertisingID.dropLast(1)
+                isPillar = (stepCounter_Pillar.advertisingID.last() == 'P')
+            }
+
+            // finally, in the onCreate, suspend the service's connection
+            stepCounter_Pillar.stopDiscovery()
+            stepCounter_Pillar.stopAdvertising()
+
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            // Handle disconnection
+            isBound = false
+        }
+    }
+
+    override fun onBackPressed() {
+        Log.d("ONCREATE-DESTROY", "photo onback called")
+
+        while(links.isNotEmpty())
+        {
+            disconnectEndpoint(links[0][0])
+        }
+        modeOff()
+
+        if (isPillar)
+        {
+            stepCounter_Pillar.setPillar(currentID)
+        }
+        else
+        {
+            stepCounter_Pillar.setMiner()
+        }
+        super.onBackPressed()
+    }
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        Log.d("ONCREATE-DESTROY", "Oncreate called")
         val global = this
         userNumber = Helper().getLocalUserName(applicationContext)
 
@@ -80,12 +138,33 @@ class Connection : AppCompatActivity(){
 
         checkPermission(Manifest.permission.ACCESS_FINE_LOCATION, LOCATION_PERMISSION_CODE)
 
+        // bind to the service
+        // for now, not calling any specific methods
+        val intent = Intent(this, StepCounter::class.java)
+        bindService(intent, serviceConnection, BIND_AUTO_CREATE)
+
+
         viewBinding = ActivityConnectionBinding.inflate(layoutInflater)
         setContentView(viewBinding.root)
 
         viewBinding.offButton.setOnClickListener {
-            for (i in links.indices) {
-                disconnectEndpoint(links[i][0])
+            /*
+            if(links.isNotEmpty()) {
+                for (i in links.indices) {
+                    Log.d("Bjorn", "$i run of links")
+                    disconnectEndpoint(links[i][0])
+                }
+            }
+            else
+            {
+                Log.d("connection","Links is empty")
+            }
+
+             */
+
+            while(links.isNotEmpty())
+            {
+                disconnectEndpoint(links[0][0])
             }
             modeOff()
         }
@@ -93,7 +172,16 @@ class Connection : AppCompatActivity(){
         viewBinding.bothButton.setOnClickListener {
             startAdvertising(false)
             startDiscovery(false)
-            modeDisplay()
+
+            val connectionMode: TextView = findViewById<TextView>(R.id.connection_mode)
+            connectionMode.text = "Connection Mode: ON"
+
+            Log.d("Connection", isAdvertising.and(isDiscovering).toString())
+
+            val connectionReport: TextView = findViewById<TextView>(R.id.connection_report)
+            connectionReport.text = "Searching"
+            //modeDisplay()
+            Log.d("initial", "modedisplay")
         }
 
         viewBinding.sendPhotoButton.setOnClickListener {
@@ -208,6 +296,7 @@ class Connection : AppCompatActivity(){
         var mode: String = "OFF"
         if (isAdvertising && isDiscovering) {
             mode = "ON"
+            Log.d("final", "modeDisplay")
         }
         else if (isAdvertising) {
             //mode = "ADVERTISING"
@@ -217,8 +306,6 @@ class Connection : AppCompatActivity(){
         }
         val connectionMode: TextView = findViewById<TextView>(R.id.connection_mode)
         connectionMode.text = "Connection Mode: $mode"
-        val connectionReport: TextView = findViewById<TextView>(R.id.connection_report)
-        connectionReport.text = "Searching"
 
     }
 
@@ -243,6 +330,7 @@ class Connection : AppCompatActivity(){
             val linksDisplay: TextView = findViewById<TextView>(R.id.links)
             val linksNumbers = links.map { it[1] }
             //linksDisplay.text = "Links/lost: $linksNumbers / $lost"
+            Log.d("Connection Links", links.toString())
             linksDisplay.text = "Connected to: $linksNumbers"
         }
     }
@@ -257,8 +345,10 @@ class Connection : AppCompatActivity(){
     private fun startAdvertising(singleMode: Boolean = true) {
         val advertisingOptions: AdvertisingOptions = AdvertisingOptions.Builder().setStrategy(STRATEGY).build()
 
+        /*
         if(isDiscovering && singleMode)
             stopDiscovery()
+         */
 
         Nearby.getConnectionsClient(context)
             .startAdvertising(
@@ -266,7 +356,7 @@ class Connection : AppCompatActivity(){
             )
             .addOnSuccessListener { unused: Void? ->
                 isAdvertising = true
-                modeDisplay()
+                //modeDisplay()
             }
             .addOnFailureListener { e: Exception? ->
                 errorDisplay("Advertising Failed: " + e.toString())
@@ -276,16 +366,18 @@ class Connection : AppCompatActivity(){
     private fun startDiscovery(singleMode: Boolean = true) {
         val discoveryOptions: DiscoveryOptions = DiscoveryOptions.Builder().setStrategy(STRATEGY).build()
 
+        /*
         if(isAdvertising && singleMode)
             stopAdvertising()
-
+         */
         //Log.d("FUNCTION", "sd")
+
 
         Nearby.getConnectionsClient(context)
             .startDiscovery(SERVICE_ID, endpointDiscoveryCallback, discoveryOptions)
             .addOnSuccessListener { unused: Void? ->
                 isDiscovering = true
-                modeDisplay()
+                //modeDisplay()
             }
             .addOnFailureListener { e: java.lang.Exception? ->
                 errorDisplay("Discovery Failed: " + e.toString())
@@ -303,13 +395,13 @@ class Connection : AppCompatActivity(){
     private fun stopAdvertising() {
         Nearby.getConnectionsClient(context).stopAdvertising()
         isAdvertising = false
-        modeDisplay()
+        //modeDisplay()
     }
 
     private fun stopDiscovery() {
         Nearby.getConnectionsClient(context).stopDiscovery()
         isDiscovering = false
-        modeDisplay()
+        //modeDisplay()
     }
 
     private fun disconnectEndpoint(endpointId: String = eid) {
@@ -482,6 +574,8 @@ class Connection : AppCompatActivity(){
             val objectInputStream = ObjectInputStream(byteArrayInputStream)
             return objectInputStream.readObject()
         }
+
+
     }
 
 

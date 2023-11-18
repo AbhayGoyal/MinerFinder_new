@@ -31,14 +31,15 @@ import kotlin.random.Random
 
 class Pillar : AppCompatActivity() {
     private val TAG = "Connection"
-    private val SERVICE_ID = "MinerFinder_Pillar"
-    private val STRATEGY: Strategy = Strategy.P2P_CLUSTER
     private val context: Context = this
+
+    // reduce Helper() calls if neccessary
+    private lateinit var localID: String
+
 
 
     private lateinit var stepCounter_Pillar: StepCounter
     private var currentPillar: String = ""
-    private var currentPillarList: MutableList<String> = mutableListOf()
     var isAPillar = false
     var isBound = false
 
@@ -52,7 +53,16 @@ class Pillar : AppCompatActivity() {
                 Log.d("SAVEDSTATE", "HERE")
                 val savedText = stepCounter_Pillar.advertisingID[0].toString()
                 val pillarTextView: TextView = findViewById(R.id.PillarView)
-                pillarTextView.text = "Broadcasting as $savedText"
+                if(savedText[0].isUpperCase())
+                {
+                    pillarTextView.text = "Broadcasting as $savedText"
+                }
+
+                isAPillar = (stepCounter_Pillar.advertisingID.last() == 'P')
+                Log.d("Binding-TAG", stepCounter_Pillar.advertisingID)
+
+                val button1 = findViewById<Button>(R.id.buttonU)
+                button1.performClick()
             }
 
         }
@@ -97,24 +107,27 @@ class Pillar : AppCompatActivity() {
         button2.setOnClickListener {
             // stop advertising
             //stepCounter_Pillar.stopDiscovery()
-            stepCounter_Pillar.stopAdvertising()
+            stepCounter_Pillar.setMiner()
             isAPillar = false
             pillarTextView.text = "Not advertising as a pillar"
+
+            //stepCounter_Pillar.stopAdvertising()
+            //stepCounter_Pillar.stopDiscovery()
         }
 
         buttonU.setOnClickListener {
             //Log.d("currentPillar", currentPillar)
             //Log.d("currentPillar - 2", stepCounter_Pillar.getPillarNew())
             currentPillar = stepCounter_Pillar.getPillarNew()
-            currentPillarList = stepCounter_Pillar.getPillarList()
             if(isAPillar)
             {
-                pillarConnectedTo.text = "Connected To: " + currentPillarList.toString()
+                pillarConnectedTo.text = "Miners in range: " + stepCounter_Pillar.getMinerList().toString()
             }
             else
             {
                 pillarConnectedTo.text = "Connected To: " + currentPillar
             }
+
             // Read data from file
             val fileName = "${Helper().getLocalUserName(applicationContext)}.json"
             val fileInputStream = openFileInput(fileName)
@@ -139,15 +152,24 @@ class Pillar : AppCompatActivity() {
             val speed = values[1].trim()
             val pillar = values[2].trim().substring(0, values[2].trim().length - 2)
 
-            val output = "  Time: $timeFinal   \n  Angle: $angle \n  Speed: $speed \n  Pillar: $pillar"
-            textView.text = output
+            if(!isAPillar)
+            {
+                val output = "  Time: $timeFinal   \n  Angle: $angle \n  Speed: $speed \n  Pillar: $pillar"
+                textView.text = output
 
-            val lastEntries = lines.takeLast(5)
-            var textEntries: String = ""
-            for (line in lastEntries){
-                textEntries = textEntries + "\n" + line
+                val lastEntries = lines.takeLast(5)
+                var textEntries: String = ""
+                for (line in lastEntries){
+                    textEntries = textEntries + "\n" + line
+                }
+                locationEntries.text = "\n" + textEntries
+
             }
-            locationEntries.text = "\n" + textEntries
+            else
+            {
+                textView.text = ""
+                locationEntries.text = ""
+            }
         }
 
     }
@@ -159,8 +181,25 @@ class Pillar : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
+        /*
+        if (isBound) {
+            unbindService(serviceConnection)
+            isBound = false
+        }
+
+         */
         super.onBackPressed()
     }
+
+    override fun onDestroy() {
+        if (isBound) {
+            unbindService(serviceConnection)
+            isBound = false
+        }
+        super.onDestroy()
+
+    }
+
 
 
 

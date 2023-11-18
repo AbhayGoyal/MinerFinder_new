@@ -12,8 +12,9 @@ import android.hardware.SensorManager
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.os.StrictMode
+import android.os.StrictMode.VmPolicy
 import android.util.Log
-import android.widget.TextView
 import com.chaquo.myapplication.databinding.ActivitySensorsBinding
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.AdvertisingOptions
@@ -32,8 +33,8 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.io.File
 import java.sql.Timestamp
-import kotlin.math.abs
 import kotlin.math.pow
+
 
 class StepCounter : Service(){
 
@@ -52,6 +53,8 @@ class StepCounter : Service(){
     private var step_count = 0
 
     private val avg_step_size = 0.76 // meters
+
+    private lateinit var localUserName: String
 
     // for the connection
     val allPillarList: List<Char> = ('A'..'Z').toList()
@@ -234,7 +237,7 @@ class StepCounter : Service(){
                 endpointName, SERVICE_ID, connectionLifecycleCallback, advertisingOptions
             )
             .addOnSuccessListener { unused: Void? ->
-                Log.d("Advertising as Pillar:", endpointName)
+                Log.d("Pillar_Advertising:", endpointName)
 
                 // this should also update the activity I call it from with runOnUI.
                 // I am not sure what's a good way to do this atm
@@ -309,12 +312,18 @@ class StepCounter : Service(){
                 Log.d("Connection-Pillar", "Pillar $discoveredEndpointName found")
 
                 // add the pillar to the map.
-                if (discoveredEndpointName.length == 1 && discoveredEndpointName[0] in allPillarList) {
+                if (discoveredEndpointName.length == 2 && discoveredEndpointName[1] == 'P' && discoveredEndpointName[0] in allPillarList) {
                     Log.d("Pillar:added", "$discoveredEndpointName")
-                    links.add(listOf(discoveredEndpointID, discoveredEndpointName))
-                    pillarCurrentlyReceived.add(discoveredEndpointName)
+                    links.add(listOf(discoveredEndpointID.toString(), discoveredEndpointName.dropLast(1)))
+                    pillarCurrentlyReceived.add(discoveredEndpointName.dropLast(1))
                     Log.d("Pillar:total", pillarCurrentlyReceived.toString())
                 }
+                if (discoveredEndpointName.length == 2 && discoveredEndpointName.lastOrNull() == 'M') {
+                    links.add(listOf(discoveredEndpointID.toString(), discoveredEndpointName.dropLast(1)))
+                    minersCurrentlyFound.add(discoveredEndpointName.dropLast(1))
+                    Log.d("Miner:added", "$discoveredEndpointName")
+                }
+
             }
 
             override fun onEndpointLost(endpointId: String) {
@@ -322,9 +331,12 @@ class StepCounter : Service(){
                 val pillarLost = links.find { it[0] == endpointId }
                 var pillarName = pillarLost?.get(1).toString()
 
+                Log.d("Pillarname/MinerName!", pillarName)
+
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     links.removeIf { it[0] == endpointId }
                     pillarCurrentlyReceived.removeIf {it == pillarName}
+                    minersCurrentlyFound.removeIf {it == pillarName}
                     Log.d("Tried to Remove", "$pillarName")
                 }
             }
@@ -341,10 +353,19 @@ class StepCounter : Service(){
         }
     }
 
+    fun setMiner()
+    {
+        stopAdvertising()
+        //advertisingID = Helper().getLocalUserName(context) + "M"
+        advertisingID = localUserName + "M"
+        startAdvertising()
+    }
+
     fun getPillarNew(): String
     {
         if(pillarCurrentlyReceived.isNotEmpty())
         {
+            //Log.d("GETPillarNew", pillarCurrentlyReceived[0])
             return pillarCurrentlyReceived[0]
         }
         else
@@ -353,8 +374,9 @@ class StepCounter : Service(){
         }
     }
 
-    fun getPillarList(): MutableList<String> {
-        return pillarCurrentlyReceived
+    fun getMinerList(): MutableList<String> {
+        Log.d("MIner_List", minersCurrentlyFound.toString())
+        return minersCurrentlyFound
     }
 
 
@@ -364,6 +386,20 @@ class StepCounter : Service(){
         val filter = IntentFilter(ACTION_SET_PILLAR)
         registerReceiver(receiver, filter)
         startDiscovery()
+        advertisingID = Helper().getLocalUserName(context) + "M"
+        startAdvertising()
+        localUserName = Helper().getLocalUserName(context)
+        Log.d("StepCOunter Oncreate!", "onCreate called")
+
+        // testing to detect leaks
+        /*
+        StrictMode.setVmPolicy(
+            VmPolicy.Builder(StrictMode.getVmPolicy())
+                .detectLeakedClosableObjects()
+                .build()
+        )
+         */
+
     }
 
 
@@ -420,7 +456,8 @@ class StepCounter : Service(){
     }
 
     private fun readJson(fileName: String) {
-        val fileName = "${Helper().getLocalUserName(applicationContext)}.json"
+        //val fileName = "${Helper().getLocalUserName(applicationContext)}.json"
+        val fileName = "${localUserName}.json"
         val fileInputStream = openFileInput(fileName)
         val jsonString = fileInputStream.bufferedReader().use { it.readText() }
         val jsonObject = JSONObject(jsonString)
@@ -429,15 +466,31 @@ class StepCounter : Service(){
 
     private fun saveJson(jsonString: String) {
         val STORAGE_TIME = 3 * 3600 // in seconds: x hours * seconds
-        val userNumber: String = Helper().getLocalUserName(applicationContext)
+        //val userNumber: String = Helper().getLocalUserName(applicationContext)
+        val userNumber: String = localUserName
         val fileName = "${userNumber}.json"
         val file = File(filesDir, fileName)
-        val jsonObject: JSONObject
+        var jsonObject: JSONObject
         if (file.exists()) {
-            val fileInputStream = openFileInput(fileName)
-            val jsonFileString = fileInputStream.bufferedReader().use { it.readText() }
-            jsonObject = JSONObject(jsonFileString)
-            fileInputStream.close()
+            try {
+                val fileInputStream = openFileInput(fileName)
+                val jsonFileString = fileInputStream.bufferedReader().use { it.readText() }
+                Log.d("JSON output", jsonFileString)
+
+                // Check if the JSON string is not empty
+                if (jsonFileString.isNotEmpty()) {
+                    jsonObject = JSONObject(jsonFileString)
+                } else {
+                    jsonObject = JSONObject()
+                }
+
+                fileInputStream.close()
+            } catch (e: Exception) {
+                // Handle exception
+                e.printStackTrace()
+                jsonObject = JSONObject()
+            }
+
         }
         else {
             file.createNewFile()
@@ -448,13 +501,13 @@ class StepCounter : Service(){
         val fileOutputStream = openFileOutput(fileName, Context.MODE_PRIVATE)
         jsonObject.put(Timestamp(System.currentTimeMillis()).toString(), jsonString)
 
-        // limit ot 40 items in json object for testing
-        /*
-        while (jsonObject.length() > 40) {
+        // limit ot 80 items in json object for testing
+
+        while (jsonObject.length() > 80) {
             val firstKey = jsonObject.keys().next()
             jsonObject.remove(firstKey)
         }
-         */
+
         while (jsonObject.length() > 0) {
             val firstKey = jsonObject.keys().next()
             if ((Timestamp(System.currentTimeMillis()).time - Timestamp.valueOf(firstKey).time) / 1000 > STORAGE_TIME)
@@ -479,7 +532,11 @@ class StepCounter : Service(){
         var timestampString: String
 
         if (file.exists()) {
-            val rows = file.bufferedReader().readText()
+            //val rows = file.bufferedReader().readText()
+            //Log.d("Update_Timestamp", "At buffered reader, check")
+            val rows = file.bufferedReader().use {
+                it.readText()
+            }
             val csv = rows.split(",").toMutableList()
             //Log.d("json", userNumber.toString())
             while (csv.size < userNumber) {
